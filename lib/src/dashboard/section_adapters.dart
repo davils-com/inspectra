@@ -293,6 +293,8 @@ ReportSection coverageSection(CoverageReport report) {
       'Lines': '${report.linesHit}/${report.linesFound}',
       'Files': '${report.files.length}',
       'Not loaded by tests': '${report.untested.length}',
+      if (report.browserOnly.isNotEmpty)
+        'Loaded in a browser only': '${report.browserOnly.length}',
     },
     findings: <Finding>[
       if (report.failed)
@@ -311,6 +313,7 @@ ReportSection coverageSection(CoverageReport report) {
           (file.path, file.linesFound, file.linesHit),
       ],
       untested: report.untested,
+      browserOnly: report.browserOnly,
       percent: report.percent,
       minimum: minimum,
     ),

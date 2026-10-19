@@ -22,13 +22,14 @@ import 'package:inspectra/src/hook/pre_commit_script.dart';
 import 'package:test/test.dart';
 
 import '../support/fake_process_runner.dart';
+import '../support/fixture.dart';
 
 /// Tests installing and removing the pre-commit hook.
 void main() {
-  late Directory directory;
+  final directory = Fixture<Directory>();
 
-  setUp(() => directory = Directory.systemTemp.createTempSync('hook_'));
-  tearDown(() => directory.deleteSync(recursive: true));
+  setUp(() => directory.value = Directory.systemTemp.createTempSync('hook_'));
+  tearDown(() => directory.value.deleteSync(recursive: true));
 
   /// Creates a manager whose `git rev-parse` answers [gitPath].
   GitHookManager manager({String gitPath = '.git/hooks/pre-commit'}) =>
@@ -40,7 +41,7 @@ void main() {
             stderr: '',
           ),
         ),
-        workingDirectory: directory.path,
+        workingDirectory: directory.value.path,
         host: HostPlatform.current(),
       );
 
@@ -68,7 +69,7 @@ void main() {
   });
 
   test('never touches a foreign hook', () async {
-    File('${directory.path}/.git/hooks/pre-commit')
+    File('${directory.value.path}/.git/hooks/pre-commit')
       ..createSync(recursive: true)
       ..writeAsStringSync('#!/bin/sh\nmy-hook');
     expect(manager().install, throwsA(isA<InvalidUsageException>()));

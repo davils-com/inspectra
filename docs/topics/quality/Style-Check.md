@@ -69,11 +69,16 @@ inspectra:
 | [`no_else`](#rule-no-else) | | | ✓ |
 | [`no_default_case`](#rule-no-default-case) | | | ✓ |
 | [`no_wildcard_case`](#rule-no-wildcard-case) | | | ✓ |
+| [`no_late`](#rule-no-late) | | | ✓ |
+| [`no_platform_imports`](#rule-no-platform-imports) | | | |
 
 `recommended` is meant for every package, Flutter apps included: a widget and its private `State` share a file, and
 documentation of the public API is left to the analyzer lint `public_member_api_docs`. `strict` is a house style -
 the one %product% follows itself - with one type per file including private ones and documentation everywhere.
 `one_public_type_per_file` is not part of `strict`, since `one_type_per_file` already covers it.
+
+`no_platform_imports` is part of no preset, since a command line tool imports `dart:io` by nature;
+`rules: {no_platform_imports: true}` switches it on for a library that runs on every platform.
 
 `license_header` runs only when `license_header` names a template. Custom rules run in every preset unless `rules`
 switches them off. To start small, take `preset: none` and switch rules on one by one.
@@ -125,6 +130,18 @@ switches them off. To start small, take `preset: none` and switch rules on one b
     <def title="no_wildcard_case" id="rule-no-wildcard-case">
         No <code>_</code> case in <code>switch</code> statements and expressions - the pattern form of
         <code>default</code>.
+    </def>
+    <def title="no_late" id="rule-no-late">
+        No <code>late</code> field, top level or local variable, so that no read can fail with a
+        <code>LateInitializationError</code>: initialise a variable where it is declared or in an initialiser
+        list, or make the deferred value explicit. A variable merely named <code>late</code> is not reported.
+    </def>
+    <def title="no_platform_imports" id="rule-no-platform-imports">
+        Nothing under <code>lib/</code> imports or exports a platform library - <code>dart:io</code>,
+        <code>dart:ffi</code>, <code>dart:isolate</code>, <code>dart:html</code>, <code>dart:js_interop</code> and
+        the other libraries that exist on some platforms only - except a variant a conditional import chooses, a
+        file whose name ends in <code>_io</code>, <code>_native</code> or <code>_web</code>.
+        <code>dart:mirrors</code> is refused everywhere. Files outside <code>lib/</code> are not checked.
     </def>
 </deflist>
 

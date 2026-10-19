@@ -21,16 +21,17 @@ import 'package:inspectra/inspectra.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
+import 'support/fixture.dart';
 import 'support/fixtures.dart';
 
 /// Tests the dependency graph built from a resolved package.
 void main() {
-  late String root;
+  final root = Fixture<String>();
 
   setUp(() {
-    root = temporaryDirectory();
+    root.value = temporaryDirectory();
     writeResolvedPackage(
-      root,
+      root.value,
       dependencies: ['http'],
       devDependencies: ['test'],
       packages: [
@@ -44,13 +45,17 @@ void main() {
   });
 
   test('follows dependencies but not dev_dependencies', () async {
-    final PackageGraph graph = await PackageGraph.load(p.join(root, 'app'));
+    final PackageGraph graph = await PackageGraph.load(
+      p.join(root.value, 'app'),
+    );
 
     expect(graph.reachable(includeDev: false), {'http', 'meta'});
   });
 
   test('includes dev_dependencies on request', () async {
-    final PackageGraph graph = await PackageGraph.load(p.join(root, 'app'));
+    final PackageGraph graph = await PackageGraph.load(
+      p.join(root.value, 'app'),
+    );
 
     expect(graph.reachable(includeDev: true), {
       'http',
@@ -61,14 +66,18 @@ void main() {
   });
 
   test('knows where each package lives', () async {
-    final PackageGraph graph = await PackageGraph.load(p.join(root, 'app'));
+    final PackageGraph graph = await PackageGraph.load(
+      p.join(root.value, 'app'),
+    );
 
-    expect(graph.directoryOf('http'), p.join(root, 'cache', 'http'));
+    expect(graph.directoryOf('http'), p.join(root.value, 'cache', 'http'));
     expect(graph.directoryOf('missing'), isNull);
   });
 
   test('narrows the lock file to the given packages', () async {
-    final PackageGraph graph = await PackageGraph.load(p.join(root, 'app'));
+    final PackageGraph graph = await PackageGraph.load(
+      p.join(root.value, 'app'),
+    );
     final retained =
         jsonDecode(graph.lock.retain({'meta', 'http'})) as Map<String, Object?>;
 
@@ -80,8 +89,9 @@ void main() {
   });
 
   test('tells external packages from path packages', () async {
-    final PubspecLock lock = (await PackageGraph.load(p.join(root, 'app')))
-        .lock;
+    final PubspecLock lock = (await PackageGraph.load(
+      p.join(root.value, 'app'),
+    )).lock;
 
     expect(lock.packages['http']!.isExternal, isTrue);
     expect(lock.packages['local']!.isExternal, isFalse);

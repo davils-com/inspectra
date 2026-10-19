@@ -259,7 +259,8 @@ and about 200 lint rules, which this repository uses itself.
 
 Rules no lint covers, on the syntax tree: `license_header` (from a template with `{year}`),
 `one_public_type_per_file`, `one_type_per_file`, `file_named_after_type`, `public_docs`,
-`private_docs`, `no_comments`, `no_else`, `no_default_case`, `no_wildcard_case`.
+`private_docs`, `no_comments`, `no_else`, `no_default_case`, `no_wildcard_case`, `no_late`,
+and `no_platform_imports`, which no preset turns on.
 `preset: recommended` (the default) takes the header, one public type per file and file naming -
 Flutter's widget-plus-private-`State` files pass; `strict` is the house style Inspectra follows
 itself; `rules: {no_else: true}` switches single rules.
@@ -356,7 +357,8 @@ steps:
 append the directory of its `trivy.executable` to `$GITHUB_PATH` before `build_runner`. Use
 `-f markdown >> "$GITHUB_STEP_SUMMARY"` for a job summary, and
 `dart run inspectra report -f html -o inspectra-report.html` for one dashboard of every evaluation to keep as an
-artifact. GitLab, Azure DevOps, Jenkins and SonarQube read `-f gitlab`, `junit`, `checkstyle` and `sonarqube`.
+artifact; `report --recursive`, the default in a folder without `pubspec.yaml`, puts every package below the
+directory - workspaces and their members included - into one dashboard with an overview across the projects. GitLab, Azure DevOps, Jenkins and SonarQube read `-f gitlab`, `junit`, `checkstyle` and `sonarqube`.
 
 ## Contributing
 

@@ -21,17 +21,18 @@ import 'package:test/test.dart';
 
 import '../support/fake_http_server.dart';
 import '../support/fake_response.dart';
+import '../support/fixture.dart';
 import '../support/test_harness.dart';
 
 /// Runs `inspectra baseline` and the checks that apply the baseline
 /// in-process.
 void main() {
-  late FakeHttpServer server;
+  final server = Fixture<FakeHttpServer>();
   final harnesses = <TestHarness>[];
 
-  setUp(() async => server = await FakeHttpServer.start());
+  setUp(() async => server.value = await FakeHttpServer.start());
   tearDown(() async {
-    await server.close();
+    await server.value.close();
     for (final harness in harnesses) {
       harness.dispose();
     }
@@ -44,8 +45,8 @@ void main() {
     final harness = TestHarness.withFiles(
       files,
       environment: <String, String>{
-        'INSPECTRA_NETWORK_OSV_URL': server.baseUrl,
-        'INSPECTRA_NETWORK_PUB_HOSTED_URL': server.baseUrl,
+        'INSPECTRA_NETWORK_OSV_URL': server.value.baseUrl,
+        'INSPECTRA_NETWORK_PUB_HOSTED_URL': server.value.baseUrl,
         'INSPECTRA_NETWORK_MAX_ATTEMPTS': '1',
       },
     );
@@ -203,7 +204,7 @@ packages:
 
     /// Answers the OSV batch query with [vulnerable] advisories.
     void serve({required bool vulnerable}) {
-      server
+      server.value
         ..on(
           'POST',
           '/v1/querybatch',

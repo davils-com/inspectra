@@ -73,7 +73,7 @@ class Other {
       },
     );
     expect(await harness.run(<String>['style']), 0, reason: harness.err);
-    expect(harness.out, 'Style: all 1 file(s) follow the 9 rule(s).\n');
+    expect(harness.out, 'Style: all 1 file(s) follow the 10 rule(s).\n');
     final report = File(
       '${harness.workingDirectory}/.dart_tool/inspectra/style.json',
     );

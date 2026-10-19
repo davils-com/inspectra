@@ -285,6 +285,12 @@
             },
             "no_wildcard_case": {
               "type": "boolean"
+            },
+            "no_late": {
+              "type": "boolean"
+            },
+            "no_platform_imports": {
+              "type": "boolean"
             }
           }
         },
@@ -1070,6 +1076,13 @@
             ]
           },
           "description": "Adds to the list of the lower layers instead of replacing it."
+        },
+        "merge": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          },
+          "default": []
         }
       }
     },

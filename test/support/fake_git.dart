@@ -60,8 +60,11 @@ final class FakeGit {
   /// The outcome of every call, to simulate failures.
   final ProcessOutcome? failure;
 
+  /// The process runner answering the calls, once [runner] is read.
+  FakeProcessRunner? _runner;
+
   /// The process runner answering the calls.
-  late final runner = FakeProcessRunner(_answer);
+  FakeProcessRunner get runner => _runner ??= FakeProcessRunner(_answer);
 
   /// Answers one call of [executable] with [arguments].
   ///

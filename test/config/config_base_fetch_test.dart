@@ -27,25 +27,26 @@ import 'package:test/test.dart';
 
 import '../support/fake_http_server.dart';
 import '../support/fake_response.dart';
+import '../support/fixture.dart';
 import '../support/fixtures.dart';
 
 /// Tests downloading the remote bases of a configuration.
 void main() {
-  late FakeHttpServer server;
-  late String root;
+  final server = Fixture<FakeHttpServer>();
+  final root = Fixture<String>();
 
   setUp(() async {
-    server = await FakeHttpServer.start();
-    root = temporaryDirectory();
+    server.value = await FakeHttpServer.start();
+    root.value = temporaryDirectory();
   });
-  tearDown(() => server.close());
+  tearDown(() => server.value.close());
 
   /// Returns the pinned `extends` entry of [path] on the server serving
   /// [text].
   String base(String path, String text) {
-    server.on('GET', path, FakeResponse.text(text));
+    server.value.on('GET', path, FakeResponse.text(text));
     final String sha = ConfigBaseCache.digestOf(utf8.encode(text));
-    return '  - url: ${server.baseUrl}$path\n    sha256: $sha\n';
+    return '  - url: ${server.value.baseUrl}$path\n    sha256: $sha\n';
   }
 
   /// Fetches the bases of the project configuration [yaml], offline when
@@ -63,10 +64,10 @@ void main() {
         projectConfigLayer(
           pubspecYaml: null,
           configFile: yaml,
-          directory: root,
+          directory: root.value,
         ),
-        packageRoot: root,
-        cacheRoot: p.join(root, 'cache'),
+        packageRoot: root.value,
+        cacheRoot: p.join(root.value, 'cache'),
         transport: transport,
       );
     } finally {
@@ -91,19 +92,19 @@ void main() {
       ConfigLayerKind.remote,
       ConfigLayerKind.project,
     ]);
-    expect(server.requests, hasLength(2));
+    expect(server.value.requests, hasLength(2));
     final ConfigFetchOutcome again = await fetch(yaml, offline: true);
     expect(again.downloaded, isEmpty);
-    expect(server.requests, hasLength(2));
+    expect(server.value.requests, hasLength(2));
     final config = InspectraConfig.fromLayers(again.stack, packageName: 'app');
     expect(config.failOn, Severity.high);
     expect(config.minSeverity, Severity.low);
   });
 
   test('rejects content that does not match its pin', () async {
-    server.on('GET', '/base.yaml', FakeResponse.text('fail_on: low\n'));
+    server.value.on('GET', '/base.yaml', FakeResponse.text('fail_on: low\n'));
     final yaml =
-        'extends:\n  - url: ${server.baseUrl}/base.yaml\n'
+        'extends:\n  - url: ${server.value.baseUrl}/base.yaml\n'
         '    sha256: ${'a' * 64}\n';
     await expectLater(
       fetch(yaml),
@@ -115,12 +116,12 @@ void main() {
         ),
       ),
     );
-    expect(ConfigBaseCache(p.join(root, 'cache')).read('a' * 64), isNull);
+    expect(ConfigBaseCache(p.join(root.value, 'cache')).read('a' * 64), isNull);
   });
 
   test('fails as unavailable when a base cannot be downloaded', () async {
     final String missing = base('/gone.yaml', 'fail_on: low\n');
-    server.on('GET', '/gone.yaml', const FakeResponse(404));
+    server.value.on('GET', '/gone.yaml', const FakeResponse(404));
     await expectLater(
       fetch('extends:\n$missing'),
       throwsA(
@@ -138,12 +139,12 @@ void main() {
   });
 
   test('needs no connection without remote bases', () async {
-    writeFile(root, 'base.yaml', 'fail_on: high\n');
+    writeFile(root.value, 'base.yaml', 'fail_on: high\n');
     final ConfigFetchOutcome outcome = await fetch(
       'extends: base.yaml\n',
       offline: true,
     );
     expect(outcome.stack.bases.single.label, 'base.yaml');
-    expect(server.requests, isEmpty);
+    expect(server.value.requests, isEmpty);
   });
 }

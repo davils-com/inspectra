@@ -23,17 +23,18 @@ import 'package:test/test.dart';
 import '../support/fake_http_server.dart';
 import '../support/fake_process_runner.dart';
 import '../support/fake_response.dart';
+import '../support/fixture.dart';
 import '../support/test_harness.dart';
 
 /// Runs `inspectra deps` and the dependency policy of `scan` and `check`
 /// in-process.
 void main() {
-  late FakeHttpServer server;
+  final server = Fixture<FakeHttpServer>();
   final harnesses = <TestHarness>[];
 
-  setUp(() async => server = await FakeHttpServer.start());
+  setUp(() async => server.value = await FakeHttpServer.start());
   tearDown(() async {
-    await server.close();
+    await server.value.close();
     for (final harness in harnesses) {
       harness.dispose();
     }
@@ -46,8 +47,8 @@ void main() {
     final harness = TestHarness.withFiles(
       files,
       environment: <String, String>{
-        'INSPECTRA_NETWORK_OSV_URL': server.baseUrl,
-        'INSPECTRA_NETWORK_PUB_HOSTED_URL': server.baseUrl,
+        'INSPECTRA_NETWORK_OSV_URL': server.value.baseUrl,
+        'INSPECTRA_NETWORK_PUB_HOSTED_URL': server.value.baseUrl,
         'INSPECTRA_NETWORK_MAX_ATTEMPTS': '1',
       },
     );
@@ -210,7 +211,7 @@ $policy
   });
 
   test('scan and check apply the policy', () async {
-    server.on(
+    server.value.on(
       'POST',
       '/v1/querybatch',
       FakeResponse.json(<String, Object?>{
@@ -253,7 +254,7 @@ packages:
   });
 
   test('--online checks how far the dependencies are behind', () async {
-    server.on(
+    server.value.on(
       'GET',
       '/api/packages/http',
       FakeResponse.json(<String, Object?>{
@@ -303,9 +304,13 @@ packages:
     final online = jsonDecode(harness.out) as Map<String, Object?>;
     expect(online['outdatedChecked'], isTrue);
     expect(online['libyears'], closeTo(2.0, 0.01));
-    expect(server.requests, hasLength(1));
+    expect(server.value.requests, hasLength(1));
     expect(await run(harness, <String>['deps', '--online']), 1);
-    expect(server.requests, hasLength(1), reason: 'served from the cache');
+    expect(
+      server.value.requests,
+      hasLength(1),
+      reason: 'served from the cache',
+    );
     expect(harness.out, contains('2.0 libyears'));
     expect(await run(harness, <String>['check']), 1);
     expect(harness.out, contains('(OUTDATED_MAJOR)'));
@@ -341,8 +346,8 @@ inspectra:
 ''',
       },
       environment: <String, String>{
-        'INSPECTRA_NETWORK_OSV_URL': server.baseUrl,
-        'INSPECTRA_NETWORK_PUB_HOSTED_URL': server.baseUrl,
+        'INSPECTRA_NETWORK_OSV_URL': server.value.baseUrl,
+        'INSPECTRA_NETWORK_PUB_HOSTED_URL': server.value.baseUrl,
       },
       processRunner: git,
     );
@@ -357,7 +362,7 @@ inspectra:
   });
 
   test('scan -r checks workspace members against the root lockfile', () async {
-    server.on(
+    server.value.on(
       'POST',
       '/v1/querybatch',
       FakeResponse.json(<String, Object?>{

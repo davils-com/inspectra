@@ -176,6 +176,7 @@ inspectra:
     exclude: ['**.g.dart', '**.freezed.dart', '**.mocks.dart']
     # min_line_coverage: 80        # unset: report only, never fail
     test_arguments: []
+    merge: []                      # further runs whose coverage is merged
 
   changelog:
     enabled: false
@@ -506,6 +507,7 @@ The coverage gate. See [Coverage](Coverage-Overview.md).
 | `exclude` | list of globs | `['**.g.dart', '**.freezed.dart', '**.mocks.dart']` | Files left out of the report. Replaces the default when set. |
 | `min_line_coverage` | number, 0 to 100 | unset | The line coverage in percent below which the gate fails. Unset: report only. `--min` overrides it. |
 | `test_arguments` | list of strings | `[]` | Extra arguments for the test runner, such as `[--exclude-tags, slow]`. |
+| `merge` | list of runs | `[]` | Further test runs, each with a `name` and its `test_arguments`, whose coverage is merged into the report, such as a preset or a browser. Every layer adds its runs. |
 
 Details: [Coverage configuration](Coverage-Configuration.md).
 

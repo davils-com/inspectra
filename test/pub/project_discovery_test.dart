@@ -21,12 +21,14 @@ import 'package:inspectra/src/util/display_path.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
+import '../support/fixture.dart';
+
 /// Tests lockfile discovery in monorepos and display paths.
 void main() {
-  late Directory root;
+  final root = Fixture<Directory>();
 
   setUp(() {
-    root = Directory.systemTemp.createTempSync('discovery_');
+    root.value = Directory.systemTemp.createTempSync('discovery_');
     for (final path in <String>[
       'pubspec.lock',
       'packages/a/pubspec.lock',
@@ -35,25 +37,25 @@ void main() {
       '.dart_tool/x/pubspec.lock',
       'node_modules/y/pubspec.lock',
     ]) {
-      File('${root.path}/$path')
+      File('${root.value.path}/$path')
         ..parent.createSync(recursive: true)
         ..writeAsStringSync('');
     }
   });
-  tearDown(() => root.deleteSync(recursive: true));
+  tearDown(() => root.value.deleteSync(recursive: true));
 
   test('finds only the root lockfile without recursion', () {
-    final List<String> found = ProjectDiscovery(root.path)
+    final List<String> found = ProjectDiscovery(root.value.path)
         .find('pubspec.lock', recursive: false);
-    expect(found.map((f) => displayPath(f, root.path)), <String>[
+    expect(found.map((f) => displayPath(f, root.value.path)), <String>[
       'pubspec.lock',
     ]);
   });
 
   test('skips build output, tool caches and vendored folders', () {
-    final List<String> found = ProjectDiscovery(root.path)
+    final List<String> found = ProjectDiscovery(root.value.path)
         .find('pubspec.lock', recursive: true);
-    expect(found.map((f) => displayPath(f, root.path)), <String>[
+    expect(found.map((f) => displayPath(f, root.value.path)), <String>[
       'packages/a/pubspec.lock',
       'packages/b/pubspec.lock',
       'pubspec.lock',
@@ -61,12 +63,15 @@ void main() {
   });
 
   test('displayPath keeps outside paths absolute and uses slashes', () {
-    expect(displayPath(root.path, root.path), '.');
+    expect(displayPath(root.value.path, root.value.path), '.');
     final String outside = p.join(
-      p.rootPrefix(p.absolute(root.path)),
+      p.rootPrefix(p.absolute(root.value.path)),
       'elsewhere',
       'x',
     );
-    expect(displayPath(outside, root.path), outside.replaceAll(r'\', '/'));
+    expect(
+      displayPath(outside, root.value.path),
+      outside.replaceAll(r'\', '/'),
+    );
   });
 }

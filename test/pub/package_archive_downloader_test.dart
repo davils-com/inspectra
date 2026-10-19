@@ -24,13 +24,14 @@ import 'package:test/test.dart';
 
 import '../support/fake_http_server.dart';
 import '../support/fake_response.dart';
+import '../support/fixture.dart';
 
 /// Tests archive host validation and integrity checks.
 void main() {
-  late FakeHttpServer server;
+  final server = Fixture<FakeHttpServer>();
 
-  setUp(() async => server = await FakeHttpServer.start());
-  tearDown(() => server.close());
+  setUp(() async => server.value = await FakeHttpServer.start());
+  tearDown(() => server.value.close());
 
   /// Creates a downloader for the fake repository.
   PackageArchiveDownloader downloader() => PackageArchiveDownloader(
@@ -38,7 +39,7 @@ void main() {
       config: const NetworkConfig(maxAttempts: 1),
       environment: const Environment(<String, String>{}),
     ),
-    repositoryUrl: server.baseUrl,
+    repositoryUrl: server.value.baseUrl,
     maxBytes: 1024,
   );
 
@@ -63,17 +64,23 @@ void main() {
     expect(
       downloader().download(
         'x',
-        PubVersion(version: '1.0.0', archiveUrl: '${server.baseUrl}/missing'),
+        PubVersion(
+          version: '1.0.0',
+          archiveUrl: '${server.value.baseUrl}/missing',
+        ),
       ),
       throwsA(isA<UnavailableException>()),
     );
   });
 
   test('accepts archives without a published checksum', () async {
-    server.on('GET', '/a.tar.gz', FakeResponse.text('bytes'));
+    server.value.on('GET', '/a.tar.gz', FakeResponse.text('bytes'));
     final Uint8List bytes = await downloader().download(
       'x',
-      PubVersion(version: '1.0.0', archiveUrl: '${server.baseUrl}/a.tar.gz'),
+      PubVersion(
+        version: '1.0.0',
+        archiveUrl: '${server.value.baseUrl}/a.tar.gz',
+      ),
     );
     expect(bytes, hasLength(5));
   });

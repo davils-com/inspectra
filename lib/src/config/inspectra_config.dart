@@ -68,6 +68,7 @@ export 'package:inspectra/src/config/config_recorder.dart';
 export 'package:inspectra/src/config/config_strictness.dart';
 export 'package:inspectra/src/config/constraint_style.dart';
 export 'package:inspectra/src/config/coverage_config.dart';
+export 'package:inspectra/src/config/coverage_run.dart';
 export 'package:inspectra/src/config/coverage_runner.dart';
 export 'package:inspectra/src/config/denied_package.dart';
 export 'package:inspectra/src/config/dependency_policy_config.dart';

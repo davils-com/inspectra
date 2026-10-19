@@ -20,16 +20,17 @@ import 'package:inspectra/src/workspace/workspace.dart';
 import 'package:inspectra/src/workspace/workspace_policy.dart';
 import 'package:test/test.dart';
 
+import '../support/fixture.dart';
 import '../support/fixtures.dart';
 
 /// Tests reading a pub workspace and its policy.
 void main() {
-  late String root;
+  final root = Fixture<String>();
 
   /// Writes [files] below the workspace root.
   void write(Map<String, String> files) {
     for (final MapEntry(key: path, value: content) in files.entries) {
-      writeFile(root, path, content);
+      writeFile(root.value, path, content);
     }
   }
 
@@ -39,7 +40,7 @@ void main() {
       '${dependencies.isEmpty ? '' : 'dependencies:\n$dependencies'}';
 
   setUp(() {
-    root = temporaryDirectory();
+    root.value = temporaryDirectory();
     write(<String, String>{
       'pubspec.yaml':
           'name: root\npublish_to: none\nenvironment:\n  sdk: ^3.6.0\n'
@@ -62,7 +63,7 @@ void main() {
   });
 
   test('reads the members, globs and nested files', () {
-    final Workspace? workspace = Workspace.load(root);
+    final Workspace? workspace = Workspace.load(root.value);
     expect(
       workspace?.members.map((member) => '${member.name} ${member.path}'),
       <String>[
@@ -76,11 +77,11 @@ void main() {
     expect(workspace?.memberOf('features/cart/lib/cart.dart').name, 'cart');
     expect(workspace?.memberOf('README.md').name, 'root');
     expect(workspace?.memberOf('features/cartography/x').name, 'root');
-    expect(Workspace.load('$root/apps/shop'), isNull);
+    expect(Workspace.load('${root.value}/apps/shop'), isNull);
   });
 
   test('the graph finds dependents and cycles', () {
-    final graph = PackageDependencyGraph.of(Workspace.load(root)!);
+    final graph = PackageDependencyGraph.of(Workspace.load(root.value)!);
     expect(graph.edges['shop'], <String>['cart', 'core']);
     expect(graph.withDependents(<String>{'search'}), <String>{
       'search',
@@ -107,7 +108,7 @@ void main() {
   List<String> check(WorkspacePolicyConfig config) => <String>[
     for (final Finding finding in WorkspacePolicy(
       config,
-    ).check(Workspace.load(root)!))
+    ).check(Workspace.load(root.value)!))
       '${finding.ruleId} ${finding.packageName ?? finding.location?.path}',
   ];
 
@@ -148,7 +149,7 @@ void main() {
       WorkspacePolicyConfig(alignVersions: VersionAlignment.exact),
     );
     final Finding first = policy
-        .check(Workspace.load(root)!)
+        .check(Workspace.load(root.value)!)
         .firstWhere(
           (finding) => finding.ruleId == 'WORKSPACE_VERSION_MISMATCH',
         );

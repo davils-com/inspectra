@@ -22,15 +22,16 @@ import 'package:inspectra/src/style/style_host.dart';
 import 'package:inspectra/style.dart';
 import 'package:test/test.dart';
 
+import '../support/fixture.dart';
 import '../support/named_rule.dart';
 import '../support/no_print_rule.dart';
 
 /// Tests the program that runs custom rules.
 void main() {
-  late Directory root;
+  final root = Fixture<Directory>();
 
-  setUp(() => root = Directory.systemTemp.createTempSync('style_host_'));
-  tearDown(() => root.deleteSync(recursive: true));
+  setUp(() => root.value = Directory.systemTemp.createTempSync('style_host_'));
+  tearDown(() => root.value.deleteSync(recursive: true));
 
   /// Writes a request for [files] with the [disabled] rules and runs
   /// [rules] in-process.
@@ -39,11 +40,11 @@ void main() {
     List<String> files = const <String>['lib/a.dart'],
     List<String> disabled = const <String>[],
   }) async {
-    final request = File('${root.path}/request.json');
-    final answer = File('${root.path}/answer.json');
+    final request = File('${root.value.path}/request.json');
+    final answer = File('${root.value.path}/answer.json');
     request.writeAsStringSync(
       jsonEncode(<String, Object?>{
-        'root': root.path,
+        'root': root.value.path,
         'files': files,
         'disabled': disabled,
         'output': answer.path,
@@ -54,7 +55,7 @@ void main() {
   }
 
   setUp(() {
-    File('${root.path}/lib/a.dart')
+    File('${root.value.path}/lib/a.dart')
       ..createSync(recursive: true)
       ..writeAsStringSync("void f() {\n  print('x');\n}\n");
   });
@@ -106,7 +107,7 @@ void main() {
 
   test('reports missing rule files before running anything', () {
     expect(
-      StyleHost(root.path).run(
+      StyleHost(root.value.path).run(
         ruleFiles: const <String>['tool/missing.dart'],
         files: const <String>[],
         disabled: const <String>{},

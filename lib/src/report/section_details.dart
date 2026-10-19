@@ -41,11 +41,13 @@ final class NoDetails extends SectionDetails {
 /// The line coverage of every file, for the coverage section.
 final class CoverageDetails extends SectionDetails {
   /// Creates the coverage of [files], with the [untested] files that no
-  /// test loaded, the total [percent] and the required [minimum], if any.
+  /// test loaded, the [browserOnly] files only a browser loaded, the total
+  /// [percent] and the required [minimum], if any.
   const CoverageDetails({
     required this.files,
     required this.untested,
     required this.percent,
+    this.browserOnly = const <String>[],
     this.minimum,
   });
 
@@ -54,6 +56,9 @@ final class CoverageDetails extends SectionDetails {
 
   /// The files no test loaded.
   final List<String> untested;
+
+  /// The files only a browser run loaded, whose coverage is unknown.
+  final List<String> browserOnly;
 
   /// The line coverage of all files, from 0 to 100.
   final double percent;
@@ -73,6 +78,7 @@ final class CoverageDetails extends SectionDetails {
         <String, Object?>{'path': path, 'linesFound': found, 'linesHit': hit},
     ],
     'untested': untested,
+    if (browserOnly.isNotEmpty) 'browserOnly': browserOnly,
   };
 }
 

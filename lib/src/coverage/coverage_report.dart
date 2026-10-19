@@ -24,6 +24,7 @@ class CoverageReport {
     required this.untested,
     required this.lcovPath,
     required this.minLineCoverage,
+    this.browserOnly = const <String>[],
   }) : files = List.unmodifiable(
          files..sort((a, b) => a.path.compareTo(b.path)),
        );
@@ -36,6 +37,14 @@ class CoverageReport {
   /// The VM only reports coverage for libraries a test imported, so these are
   /// not part of [percent]: import them from a test to have them counted.
   final List<String> untested;
+
+  /// Files below `report_on` that only a browser run of `coverage.merge`
+  /// loaded, relative to the package root.
+  ///
+  /// A browser reports only the lines that ran, so the share of these files
+  /// is unknown and they are not part of [percent]: load them from a test on
+  /// the VM to have them counted.
+  final List<String> browserOnly;
 
   /// The written `lcov.info`.
   final String lcovPath;
@@ -76,6 +85,16 @@ class CoverageReport {
         'not counted:',
       );
       for (final String path in untested) {
+        buffer.writeln('    $path');
+      }
+    }
+    if (browserOnly.isNotEmpty) {
+      buffer.writeln(
+        '\n  ${browserOnly.length} file(s) were only loaded in a browser, '
+        'whose coverage lacks the lines that did not run, and are not '
+        'counted:',
+      );
+      for (final String path in browserOnly) {
         buffer.writeln('    $path');
       }
     }

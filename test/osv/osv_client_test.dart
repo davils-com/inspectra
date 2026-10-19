@@ -27,19 +27,20 @@ import 'package:test/test.dart';
 
 import '../support/fake_http_server.dart';
 import '../support/fake_response.dart';
+import '../support/fixture.dart';
 
 /// Tests the two step OSV protocol, pagination and caching.
 void main() {
-  late FakeHttpServer server;
-  late Directory cacheDirectory;
+  final server = Fixture<FakeHttpServer>();
+  final cacheDirectory = Fixture<Directory>();
 
   setUp(() async {
-    server = await FakeHttpServer.start();
-    cacheDirectory = Directory.systemTemp.createTempSync('osv_cache_');
+    server.value = await FakeHttpServer.start();
+    cacheDirectory.value = Directory.systemTemp.createTempSync('osv_cache_');
   });
   tearDown(() async {
-    await server.close();
-    cacheDirectory.deleteSync(recursive: true);
+    await server.value.close();
+    cacheDirectory.value.deleteSync(recursive: true);
   });
 
   /// Creates a client against the fake server.
@@ -48,8 +49,8 @@ void main() {
       config: const NetworkConfig(),
       environment: const Environment(<String, String>{}),
     ),
-    baseUrl: server.baseUrl,
-    cache: OsvCache(cacheDirectory.path),
+    baseUrl: server.value.baseUrl,
+    cache: OsvCache(cacheDirectory.value.path),
   );
 
   const http = LockfileEntry(
@@ -66,7 +67,7 @@ void main() {
   );
 
   test('follows page tokens and fetches full records once', () async {
-    server
+    server.value
       ..onDynamic('POST', '/v1/querybatch', (body) {
         final queries = (jsonDecode(body) as Map)['queries'] as List;
         final first = queries.first as Map;
@@ -115,13 +116,13 @@ void main() {
         .query(<LockfileEntry>[http, path]);
     expect(result[http]!.map((v) => v.id), <String>['GHSA-A', 'GHSA-B']);
     expect(result[path], isEmpty);
-    server.requests.clear();
+    server.value.requests.clear();
     await client().query(<LockfileEntry>[http, path]);
-    expect(server.requests.where((r) => r.startsWith('GET')), isEmpty);
+    expect(server.value.requests.where((r) => r.startsWith('GET')), isEmpty);
   });
 
   test('reports OSV outages as unavailable', () {
-    server.on('POST', '/v1/querybatch', const FakeResponse(400));
+    server.value.on('POST', '/v1/querybatch', const FakeResponse(400));
     expect(
       () => client().query(<LockfileEntry>[http]),
       throwsA(isA<UnavailableException>()),

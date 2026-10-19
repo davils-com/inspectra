@@ -5,7 +5,7 @@ description: >-
   analysis, safe dependency installation, Git hooks, Trivy scans with
   automatic provisioning, format and lint gates, public API dumps and
   coverage.
-version: 2.0.0
+version: 2.1.0
 repository: https://github.com/davils-com/Inspectra
 issue_tracker: https://github.com/davils-com/Inspectra/issues
 documentation: https://davils-com.github.io/Inspectra
@@ -24,7 +24,7 @@ dependencies:
   analyzer: ^14.4.0
   archive: ^4.0.7
   args: ^2.7.0
-  build: ^4.0.11
+  build: ^5.0.0
   coverage: ^1.15.1
   crypto: ^3.0.6
   glob: ^2.2.0
@@ -35,8 +35,8 @@ dependencies:
   yaml_edit: ^2.2.4
 
 dev_dependencies:
-  build_runner: ^2.16.1
-  build_test: ^3.5.20
+  build_runner: ^2.17.1
+  build_test: ^3.5.23
   lints: ^6.1.0
   test: ^1.30.0
 

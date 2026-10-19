@@ -63,11 +63,13 @@ import 'package:inspectra/src/workspace/workspace_check.dart';
 /// option enabling them.
 final class ReportRunner {
   /// Creates a runner for the project of [session]; [configLint] checks the
-  /// configuration and [skip] names the steps not to run.
+  /// configuration, [skip] names the steps not to run and [nested] the
+  /// directories of the projects below it.
   const ReportRunner({
     required this.session,
     required this.configLint,
     this.skip = const <ReportStep>{},
+    this.nested = const <String>[],
   });
 
   /// The command session with configuration, services and console.
@@ -78,6 +80,11 @@ final class ReportRunner {
 
   /// The steps not to run.
   final Set<ReportStep> skip;
+
+  /// The directories of other projects below the project, relative to it
+  /// with `/` as separator, whose code the codebase section leaves out
+  /// because they are reported on their own.
+  final List<String> nested;
 
   /// The configuration of the project.
   InspectraConfig get _config => session.config;
@@ -210,7 +217,10 @@ final class ReportRunner {
   ReportSection _codebase() {
     final File? lock = findUpwards(_root, 'pubspec.lock');
     return codebaseSection(
-      collectCodeMetrics(_root),
+      collectCodeMetrics(
+        _root,
+        exclude: <String>[for (final String path in nested) '$path/**'],
+      ),
       pubspec: session.pubspec(),
       lockfile: lock == null
           ? null

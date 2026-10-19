@@ -20,22 +20,23 @@ import 'package:inspectra/src/config/config_layers.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
+import '../support/fixture.dart';
 import '../support/fixtures.dart';
 
 /// Tests configuration inheritance: layered values, resolving bases and
 /// policies.
 void main() {
-  late String root;
+  final root = Fixture<String>();
 
   setUp(() {
-    root = temporaryDirectory();
-    writeFile(root, 'app/pubspec.yaml', 'name: app\n');
+    root.value = temporaryDirectory();
+    writeFile(root.value, 'app/pubspec.yaml', 'name: app\n');
   });
 
   /// Writes [files] below the temporary directory.
   void write(Map<String, String> files) {
     for (final MapEntry<String, String> file in files.entries) {
-      writeFile(root, file.key, file.value);
+      writeFile(root.value, file.key, file.value);
     }
   }
 
@@ -59,11 +60,11 @@ void main() {
     ConfigRecorder? recorder,
     String? configFile,
   }) => loadConfig(
-    p.join(root, 'app'),
+    p.join(root.value, 'app'),
     overrides: ConfigOverrides(cli: cli, environment: Environment(environment)),
     recorder: recorder,
     configFile: configFile,
-    cacheRoot: p.join(root, 'cache'),
+    cacheRoot: p.join(root.value, 'cache'),
   );
 
   /// Returns a matcher for the configuration error whose text contains
@@ -231,7 +232,7 @@ void main() {
       });
       expect(
         load().style.licenseHeader,
-        p.join(root, 'acme', 'lib', 'header.txt'),
+        p.join(root.value, 'acme', 'lib', 'header.txt'),
       );
       write(<String, String>{
         'app/inspectra.yaml':
@@ -327,16 +328,16 @@ void main() {
             '    sha256: $sha\n',
       });
       expect(load, fails(<String>['not in the cache', 'config fetch']));
-      ConfigBaseCache(p.join(root, 'cache')).write(sha, text.codeUnits);
+      ConfigBaseCache(p.join(root.value, 'cache')).write(sha, text.codeUnits);
       expect(load().failOn, Severity.critical);
-      writeFile(root, 'cache/config/$sha.yaml', 'fail_on: low\n');
+      writeFile(root.value, 'cache/config/$sha.yaml', 'fail_on: low\n');
       expect(load, fails(<String>['not in the cache']));
     });
 
     test('a remote base cannot name relative files', () {
       const text = 'extends: local.yaml\n';
       final String sha = ConfigBaseCache.digestOf(text.codeUnits);
-      ConfigBaseCache(p.join(root, 'cache')).write(sha, text.codeUnits);
+      ConfigBaseCache(p.join(root.value, 'cache')).write(sha, text.codeUnits);
       write(<String, String>{
         'app/inspectra.yaml':
             'extends:\n  - url: https://acme.corp/base.yaml\n'
@@ -345,7 +346,8 @@ void main() {
       expect(load, fails(<String>['cannot extend the relative path']));
       const header = 'style:\n  license_header: header.txt\n';
       final String headerSha = ConfigBaseCache.digestOf(header.codeUnits);
-      ConfigBaseCache(p.join(root, 'cache')).write(headerSha, header.codeUnits);
+      ConfigBaseCache(p.join(root.value, 'cache'))
+          .write(headerSha, header.codeUnits);
       write(<String, String>{
         'app/inspectra.yaml':
             'extends:\n  - url: https://acme.corp/base.yaml\n'

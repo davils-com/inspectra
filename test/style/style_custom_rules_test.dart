@@ -24,19 +24,20 @@ import 'dart:io';
 import 'package:inspectra/src/util/dart_tool.dart';
 import 'package:test/test.dart';
 
+import '../support/fixture.dart';
 import '../support/test_harness.dart';
 
 /// Tests custom rules end to end.
 void main() {
-  late Directory root;
+  final root = Fixture<Directory>();
 
   setUpAll(() async {
-    root = Directory.systemTemp.createTempSync('style_custom_');
+    root.value = Directory.systemTemp.createTempSync('style_custom_');
     final String inspectra = Directory.current.absolute.path.replaceAll(
       r'\',
       '/',
     );
-    _write(root, 'pubspec.yaml', '''
+    _write(root.value, 'pubspec.yaml', '''
 name: demo
 environment:
   sdk: ^3.13.4
@@ -49,8 +50,8 @@ inspectra:
     preset: none
     custom_rules: [tool/style_rules.dart]
 ''');
-    _write(root, 'tool/style_rules.dart', _rules);
-    _write(root, 'lib/demo.dart', '''
+    _write(root.value, 'tool/style_rules.dart', _rules);
+    _write(root.value, 'lib/demo.dart', '''
 void greet() {
   print('hello');
   print('ignored'); // inspectra: ignore-style no_print
@@ -60,15 +61,15 @@ void greet() {
       'pub',
       'get',
       '--offline',
-    ], workingDirectory: root.path);
+    ], workingDirectory: root.value.path);
     expect(result.exitCode, 0, reason: '${result.stderr}');
   });
 
-  tearDownAll(() => root.deleteSync(recursive: true));
+  tearDownAll(() => root.value.deleteSync(recursive: true));
 
   /// Runs `inspectra style` with [arguments] in the package.
   Future<(int, TestHarness)> style(List<String> arguments) async {
-    final harness = TestHarness(workingDirectory: root.path);
+    final harness = TestHarness(workingDirectory: root.value.path);
     final int code = await harness.run(<String>['style', ...arguments]);
     return (code, harness);
   }
@@ -92,19 +93,19 @@ void greet() {
     expect(off, 0, reason: quiet.err);
     expect(quiet.out, contains('follow the 0 rule(s)'));
     _write(
-      root,
+      root.value,
       'inspectra.yaml',
       'style:\n  custom_rules: [tool/style_rules.dart]\n'
           '  rules: {no_printing: false}\n',
     );
     final (int unknown, TestHarness typo) = await style(const <String>[]);
-    File('${root.path}/inspectra.yaml').deleteSync();
+    File('${root.value.path}/inspectra.yaml').deleteSync();
     expect(unknown, 65);
     expect(typo.err, contains('style.rules.no_printing'));
   });
 
   test('explains rule files that do not compile', () async {
-    _write(root, 'tool/broken_rules.dart', 'final rules = 1;\n');
+    _write(root.value, 'tool/broken_rules.dart', 'final rules = 1;\n');
     final (int code, TestHarness harness) = await style(const <String>[
       '--set',
       'style.custom_rules=tool/broken_rules.dart',

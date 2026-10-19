@@ -24,6 +24,7 @@ import 'package:inspectra/src/model/severity.dart';
 import 'package:inspectra/src/report/aggregate_report.dart';
 import 'package:inspectra/src/report/html_assets.dart';
 import 'package:inspectra/src/report/html_icons.dart';
+import 'package:inspectra/src/report/multi_project_report.dart';
 import 'package:inspectra/src/report/report_section.dart';
 import 'package:inspectra/src/report/section_details.dart';
 import 'package:inspectra/src/report/section_status.dart';
@@ -67,9 +68,117 @@ final class HtmlReportWriter {
     String? project,
   }) {
     final String name = project ?? 'Inspectra report';
+    final String generated = _stamp(generatedAt);
+    return _document(
+      name: name,
+      generated: generated,
+      sidebar: _sidebar(sections, name, generated),
+      overall: AggregateReport(sections: sections).status,
+      tabs: const <(String, String)>[
+        ('#overview', 'Overview'),
+        ('#evaluations', 'Evaluations'),
+        ('#findings', 'Findings'),
+        ('#details', 'Details'),
+      ],
+      content: <String>[
+        _pageHead(generated, '${sections.length} evaluation(s)'),
+        _kpis(sections),
+        _charts(sections),
+        _evaluations(sections),
+        _explorer(sections),
+        _details(sections),
+      ],
+    );
+  }
+
+  /// Renders the dashboard of every project of [report], generated at
+  /// [generatedAt]: key figures and charts across the projects, a table of
+  /// the projects, the findings of all of them and the evaluations of each.
+  ///
+  /// Returns the HTML document.
+  String renderProjects(
+    MultiProjectReport report, {
+    required DateTime generatedAt,
+  }) {
+    final String name = report.project ?? 'Inspectra report';
+    final String generated = _stamp(generatedAt);
+    final List<ReportSection> sections = report.sections;
+    return _document(
+      name: name,
+      generated: generated,
+      sidebar: _projectsSidebar(report, name, generated),
+      overall: report.status,
+      tabs: const <(String, String)>[
+        ('#overview', 'Overview'),
+        ('#projects', 'Projects'),
+        ('#findings', 'Findings'),
+        ('#details', 'Details'),
+      ],
+      content: <String>[
+        _pageHead(
+          generated,
+          '${report.projects.length} project(s) · '
+          '${sections.length} evaluation(s)',
+        ),
+        _tag(
+          'div',
+          <String>[
+            _projectsCard(report),
+            _findingsCard(sections),
+            _totalCoverageCard(report),
+            _totalCodeCard(sections),
+          ],
+          <String, String>{'class': 'kpis'},
+        ),
+        _tag(
+          'div',
+          <String>[
+            _severityChart(sections),
+            _projectFindingsChart(report),
+            _projectCodeChart(report),
+          ],
+          <String, String>{'class': 'charts'},
+        ),
+        _projects(report),
+        _explorer(sections),
+        _projectDetails(report),
+      ],
+    );
+  }
+
+  /// Returns [generatedAt] as shown in the report, such as
+  /// `2026-10-19 08:30 UTC`.
+  static String _stamp(DateTime generatedAt) {
     final String stamp = generatedAt.toUtc().toIso8601String();
-    final generated =
-        '${stamp.substring(0, 10)} ${stamp.substring(11, 16)} UTC';
+    return '${stamp.substring(0, 10)} ${stamp.substring(11, 16)} UTC';
+  }
+
+  /// Returns the head of the page, generated at [generated], with the
+  /// [scope] of the report.
+  static String _pageHead(String generated, String scope) => _tag(
+    'div',
+    <String>[
+      _tag('h2', 'Dashboard', <String, String>{'class': 'page-title'}),
+      _tag(
+        'p',
+        'Generated $generated · $scope · Inspectra $inspectraVersion',
+        <String, String>{'class': 'muted'},
+      ),
+    ],
+    <String, String>{'class': 'page-head', 'id': 'overview'},
+  );
+
+  /// Returns the HTML document about [name], generated at [generated], with
+  /// the [sidebar], the [overall] status in the header, the [tabs] of small
+  /// screens and the [content] of the page.
+  static String _document({
+    required String name,
+    required String generated,
+    required String sidebar,
+    required SectionStatus overall,
+    required List<(String, String)> tabs,
+    required List<String> content,
+  }) {
     final head = <String>[
       '<meta charset="utf-8">',
       _void('meta', <String, String>{
@@ -91,35 +200,14 @@ final class HtmlReportWriter {
       _tag('title', '${_e(name)} · Inspectra'),
       '<style>${HtmlAssets.css}</style>',
     ];
-    final String main = _tag(
-      'main',
-      <String>[
-        _tag(
-          'div',
-          <String>[
-            _tag('h2', 'Dashboard', <String, String>{'class': 'page-title'}),
-            _tag(
-              'p',
-              'Generated $generated · ${sections.length} evaluation(s) · '
-                  'Inspectra $inspectraVersion',
-              <String, String>{'class': 'muted'},
-            ),
-          ],
-          <String, String>{'class': 'page-head', 'id': 'overview'},
-        ),
-        _kpis(sections),
-        _charts(sections),
-        _evaluations(sections),
-        _explorer(sections),
-        _details(sections),
-      ],
-      <String, String>{'class': 'main'},
-    );
+    final String main = _tag('main', content, <String, String>{
+      'class': 'main',
+    });
     final String inset = _tag(
       'div',
       <String>[
-        _header(name, AggregateReport(sections: sections).status, generated),
-        _mobileNav(sections),
+        _header(name, overall, generated),
+        _mobileNav(tabs),
         main,
         _tag(
           'footer',
@@ -137,7 +225,7 @@ final class HtmlReportWriter {
         _tag('body', <String>[
           _tag(
             'div',
-            <String>[_sidebar(sections, name, generated), inset],
+            <String>[sidebar, inset],
             <String, String>{'class': 'layout'},
           ),
           '<script>${HtmlAssets.script}</script>',
@@ -190,51 +278,92 @@ final class HtmlReportWriter {
           iconClass: 'icon st-${section.status.id}',
         ),
     ];
-    return _tag(
-      'aside',
-      <String>[
-        _tag(
-          'div',
-          _tag(
-            'a',
-            <String>[
-              _tag('span', HtmlIcons.svg(HtmlIcons.shield), <String, String>{
-                'class': 'logo',
-              }),
-              _tag(
-                'span',
-                <String>[
-                  _tag('span', 'Inspectra', <String, String>{
-                    'class': 'brand-name',
-                  }),
-                  _tag('span', _e(name), <String, String>{
-                    'class': 'brand-sub',
-                  }),
-                ],
-                <String, String>{'class': 'brand-text'},
-              ),
-            ],
-            <String, String>{'class': 'sb-brand', 'href': '#overview'},
-          ),
-          <String, String>{'class': 'sb-header'},
-        ),
-        _tag(
-          'div',
-          <String>[
-            _menuGroup('Report', report),
-            _menuGroup('Evaluations', evaluations),
-          ],
-          <String, String>{'class': 'sb-content'},
-        ),
-        _tag(
-          'div',
-          'Inspectra $inspectraVersion<br>$generated',
-          <String, String>{'class': 'sb-footer'},
-        ),
-      ],
-      <String, String>{'class': 'sidebar', 'aria-label': 'Report'},
-    );
+    return _sidebarFrame(name, generated, <String>[
+      _menuGroup('Report', report),
+      _menuGroup('Evaluations', evaluations),
+    ]);
   }
+
+  /// Returns the sidebar of [report] about the folder [name], generated at
+  /// [generated]: the parts of the page and one entry per project.
+  static String _projectsSidebar(
+    MultiProjectReport report,
+    String name,
+    String generated,
+  ) {
+    final int findings = report.findings.length;
+    final links = <String>[
+      _menuItem('#overview', HtmlIcons.dashboard, 'Overview'),
+      _menuItem(
+        '#projects',
+        HtmlIcons.layers,
+        'Projects',
+        badge: '${report.projects.length}',
+      ),
+      _menuItem(
+        '#findings',
+        HtmlIcons.list,
+        'Findings',
+        badge: groupDigits(findings),
+      ),
+    ];
+    final projects = <String>[
+      for (var index = 0; index < report.projects.length; index++)
+        _menuItem(
+          '#${_projectAnchor(report, index)}',
+          _statusPaths(report.projects[index].status),
+          _e(report.labelOf(index)),
+          badge: report.projects[index].findings.isEmpty
+              ? null
+              : groupDigits(report.projects[index].findings.length),
+          iconClass: 'icon st-${report.projects[index].status.id}',
+        ),
+    ];
+    return _sidebarFrame(name, generated, <String>[
+      _menuGroup('Report', links),
+      _menuGroup('Projects', projects),
+    ]);
+  }
+
+  /// Returns the sidebar about [name], generated at [generated], with the
+  /// menu [groups].
+  static String _sidebarFrame(
+    String name,
+    String generated,
+    List<String> groups,
+  ) => _tag(
+    'aside',
+    <String>[
+      _tag(
+        'div',
+        _tag(
+          'a',
+          <String>[
+            _tag('span', HtmlIcons.svg(HtmlIcons.shield), <String, String>{
+              'class': 'logo',
+            }),
+            _tag(
+              'span',
+              <String>[
+                _tag('span', 'Inspectra', <String, String>{
+                  'class': 'brand-name',
+                }),
+                _tag('span', _e(name), <String, String>{'class': 'brand-sub'}),
+              ],
+              <String, String>{'class': 'brand-text'},
+            ),
+          ],
+          <String, String>{'class': 'sb-brand', 'href': '#overview'},
+        ),
+        <String, String>{'class': 'sb-header'},
+      ),
+      _tag('div', groups, <String, String>{'class': 'sb-content'}),
+      _tag('div', 'Inspectra $inspectraVersion<br>$generated', <String, String>{
+        'class': 'sb-footer',
+      }),
+    ],
+    <String, String>{'class': 'sidebar', 'aria-label': 'Report'},
+  );
 
   /// Returns a group of the sidebar labelled [label] with its [items].
   static String _menuGroup(String label, List<String> items) => _tag(
@@ -298,16 +427,12 @@ final class HtmlReportWriter {
     <String, String>{'class': 'site-header'},
   );
 
-  /// Returns the navigation of small screens, which have no sidebar.
-  static String _mobileNav(List<ReportSection> sections) => _tag(
+  /// Returns the navigation of small screens, which have no sidebar, with
+  /// the links [tabs], each a target and a label.
+  static String _mobileNav(List<(String, String)> tabs) => _tag(
     'nav',
     <String>[
-      for (final (String href, String label) in <(String, String)>[
-        ('#overview', 'Overview'),
-        ('#evaluations', 'Evaluations'),
-        ('#findings', 'Findings'),
-        ('#details', 'Details'),
-      ])
+      for (final (String href, String label) in tabs)
         _tag('a', label, <String, String>{'class': 'tab', 'href': href}),
     ],
     <String, String>{'class': 'mobile-nav tabs-list', 'aria-label': 'Report'},
@@ -734,22 +859,7 @@ final class HtmlReportWriter {
   static String _evaluations(List<ReportSection> sections) {
     final rows = <String>[
       for (final ReportSection section in sections)
-        _tag('tr', <String>[
-          _tag(
-            'td',
-            _tag('a', _e(section.title), <String, String>{
-              'class': 'cell-link',
-              'href': '#${_anchor(section)}',
-            }),
-          ),
-          _tag('td', _statusBadge(section.status)),
-          _tag('td', _e(section.reason ?? section.summary), <String, String>{
-            'class': 'summary-cell',
-          }),
-          _tag('td', groupDigits(section.findings.length), <String, String>{
-            'class': 'num',
-          }),
-        ]),
+        _evaluationRow(section, section.title),
     ];
     return _card(
       id: 'evaluations',
@@ -763,6 +873,26 @@ final class HtmlReportWriter {
       flush: true,
     );
   }
+
+  /// Returns the row of [section], titled [title], in a table of
+  /// evaluations.
+  static String _evaluationRow(ReportSection section, String title) =>
+      _tag('tr', <String>[
+        _tag(
+          'td',
+          _tag('a', _e(title), <String, String>{
+            'class': 'cell-link',
+            'href': '#${_anchor(section)}',
+          }),
+        ),
+        _tag('td', _statusBadge(section.status)),
+        _tag('td', _e(section.reason ?? section.summary), <String, String>{
+          'class': 'summary-cell',
+        }),
+        _tag('td', groupDigits(section.findings.length), <String, String>{
+          'class': 'num',
+        }),
+      ]);
 
   /// Returns the finding explorer of [sections]: every finding, the most
   /// severe first, with the filters the script reveals.
@@ -983,9 +1113,11 @@ final class HtmlReportWriter {
     <String, String>{'class': 'card', 'id': 'details'},
   );
 
-  /// Returns the accordion item of [section]: its reason, key figures,
-  /// details and a link to its findings.
-  static String _panel(ReportSection section) {
+  /// Returns the accordion item of [section], titled [title] or by its
+  /// own title: its reason, key figures, details and a link to its
+  /// findings.
+  static String _panel(ReportSection section, {String? title}) {
+    final String label = title ?? section.title;
     final bool open =
         section.status == SectionStatus.failed ||
         section.status == SectionStatus.error;
@@ -1040,7 +1172,7 @@ final class HtmlReportWriter {
           _tag(
             'a',
             '${HtmlIcons.svg(HtmlIcons.list)} Show the '
-                '${section.findings.length} finding(s) of ${_e(section.title)}',
+                '${section.findings.length} finding(s) of ${_e(label)}',
             <String, String>{
               'class': 'btn btn-outline',
               'href': '#findings',
@@ -1064,7 +1196,7 @@ final class HtmlReportWriter {
           <String>[
             _tag(
               'span',
-              '${_statusIcon(section.status)}${_e(section.title)}',
+              '${_statusIcon(section.status)}${_e(label)}',
               <String, String>{'class': 'acc-title'},
             ),
             _tag('span', _e(section.summary), <String, String>{
@@ -1084,6 +1216,389 @@ final class HtmlReportWriter {
         'class': 'acc-item',
         'id': _anchor(section),
         'open': open ? '' : null,
+      },
+    );
+  }
+
+  /// Returns the card with the outcome of the projects of [report].
+  static String _projectsCard(MultiProjectReport report) {
+    int count(SectionStatus status) =>
+        report.projects.where((project) => project.status == status).length;
+    final SectionStatus overall = report.status;
+    final int ran = report.projects.length - count(SectionStatus.skipped);
+    final lead = <String>[
+      if (count(SectionStatus.failed) > 0)
+        '${count(SectionStatus.failed)} failed',
+      if (count(SectionStatus.error) > 0)
+        '${count(SectionStatus.error)} could not run',
+    ];
+    return _kpi(
+      description: 'Projects passed',
+      value: '${count(SectionStatus.passed)} / $ran',
+      action: _statusBadge(overall),
+      lead: lead.isEmpty ? 'Every project passed' : lead.join(' · '),
+      leadIcon: _statusPaths(overall),
+      leadClass: 'icon st-${overall.id}',
+      note:
+          '${report.sections.length} evaluation(s) in '
+          '${report.projects.length} project(s)',
+    );
+  }
+
+  /// Returns the card with the line coverage of all projects of [report]
+  /// together, and how many of them reach their minimum.
+  static String _totalCoverageCard(MultiProjectReport report) {
+    final measured = <CoverageDetails>[
+      for (final AggregateReport project in report.projects)
+        ...project.sections
+            .map((section) => section.details)
+            .whereType<CoverageDetails>(),
+    ];
+    if (measured.isEmpty) {
+      return _kpi(
+        description: 'Line coverage',
+        value: '–',
+        action: _tag('span', 'Not measured', <String, String>{
+          'class': 'badge badge-outline',
+        }),
+        lead: 'Coverage was not measured',
+        note: 'Enable coverage in a project to measure it.',
+      );
+    }
+    final int found = measured.fold(
+      0,
+      (sum, details) =>
+          sum + details.files.fold(0, (lines, file) => lines + file.$2),
+    );
+    final int hit = measured.fold(
+      0,
+      (sum, details) =>
+          sum + details.files.fold(0, (lines, file) => lines + file.$3),
+    );
+    final double percent = found == 0 ? 0 : hit * 100 / found;
+    final int below = measured.where((details) {
+      final double? minimum = details.minimum;
+      return minimum != null && details.percent < minimum;
+    }).length;
+    final SectionStatus outcome = below == 0
+        ? SectionStatus.passed
+        : SectionStatus.failed;
+    return _kpi(
+      description: 'Line coverage',
+      value: '${percent.toStringAsFixed(2)}%',
+      action: _tag(
+        'span',
+        '${_statusIcon(outcome)} ${measured.length - below} of '
+            '${measured.length} at minimum',
+        <String, String>{'class': 'badge badge-outline'},
+      ),
+      lead: '${groupDigits(hit)} of ${groupDigits(found)} lines covered',
+      note:
+          '${measured.length} of ${report.projects.length} project(s) '
+          'measured',
+    );
+  }
+
+  /// Returns the card with the lines of code of every code base measured
+  /// in [sections] together.
+  static String _totalCodeCard(List<ReportSection> sections) {
+    final List<CodebaseDetails> measured = sections
+        .map((section) => section.details)
+        .whereType<CodebaseDetails>()
+        .toList();
+    if (measured.isEmpty) {
+      return _codeCard(null);
+    }
+    final total = CodebaseDetails(
+      areas: <(String, int, LineCounts)>[
+        for (final CodebaseDetails details in measured) ...details.areas,
+      ],
+      largest: const <(String, LineCounts)>[],
+    );
+    return _codeCard(
+      ReportSection(
+        id: 'codebase',
+        title: 'Codebase',
+        status: SectionStatus.passed,
+        summary: '${measured.length} project(s) measured',
+        details: total,
+      ),
+    );
+  }
+
+  /// Returns the chart of the projects of [report] with the most findings,
+  /// each bar split by severity.
+  static String _projectFindingsChart(MultiProjectReport report) {
+    int count(int index) => report.projects[index].findings.length;
+    final ranked =
+        <int>[
+          for (var index = 0; index < report.projects.length; index++)
+            if (count(index) > 0) index,
+        ]..sort((a, b) {
+          final int byCount = count(b).compareTo(count(a));
+          return byCount != 0 ? byCount : a.compareTo(b);
+        });
+    if (ranked.isEmpty) {
+      return _card(
+        title: 'Findings by project',
+        description: 'The projects with the most findings',
+        content: _tag('p', 'No findings in any project.', <String, String>{
+          'class': 'empty',
+        }),
+        footer: '${report.projects.length} project(s) checked',
+      );
+    }
+    final int largest = count(ranked.first);
+    final rows = <String>[
+      for (final int index in ranked.take(8))
+        _projectBar(report.labelOf(index), <(double, String)>[
+          for (final MapEntry<Severity, int> entry in _severityCounts(
+            report.projects[index].findings,
+          ).entries)
+            (entry.value * 100 / largest, 'f-${entry.key.name}'),
+        ], count(index)),
+    ];
+    return _card(
+      title: 'Findings by project',
+      description: 'The projects with the most findings',
+      content: _tag('div', rows, <String, String>{
+        'class': 'stack-rows project-rows',
+      }),
+      footer:
+          '${groupDigits(report.findings.length)} finding(s) in '
+          '${ranked.length} of ${report.projects.length} project(s)',
+    );
+  }
+
+  /// Returns the chart of the largest projects of [report] by lines, each
+  /// bar split into code, comment and blank lines.
+  static String _projectCodeChart(MultiProjectReport report) {
+    final measured = <(int, LineCounts)>[
+      for (var index = 0; index < report.projects.length; index++)
+        for (final CodebaseDetails details
+            in report.projects[index].sections
+                .map((section) => section.details)
+                .whereType<CodebaseDetails>())
+          (index, details.total),
+    ];
+    if (measured.isEmpty) {
+      return _card(
+        title: 'Code by project',
+        description: 'The largest projects by lines',
+        content: _tag('p', 'The code base was not measured.', <String, String>{
+          'class': 'empty',
+        }),
+        footer: 'Run the codebase section to count the lines.',
+      );
+    }
+    measured.sort((a, b) {
+      final int bySize = b.$2.total.compareTo(a.$2.total);
+      return bySize != 0 ? bySize : a.$1.compareTo(b.$1);
+    });
+    final LineCounts total = measured.fold(
+      const LineCounts(),
+      (sum, entry) => sum + entry.$2,
+    );
+    final int widest = measured.first.$2.total;
+    final rows = <String>[
+      for (final (int index, LineCounts lines) in measured.take(8))
+        _projectBar(
+          report.labelOf(index),
+          _composition(lines, widest),
+          lines.total,
+        ),
+    ];
+    return _card(
+      title: 'Code by project',
+      description: 'The largest projects by lines',
+      content: _tag('div', <String>[
+        _tag(
+          'ul',
+          <String>[
+            _legend('c3', 'Code', total.code),
+            _legend('c1', 'Comments', total.comment),
+            _legend('bl', 'Blank', total.blank),
+          ],
+          <String, String>{'class': 'legend'},
+        ),
+        _tag('div', rows, <String, String>{'class': 'stack-rows project-rows'}),
+      ]),
+      footer:
+          '${groupDigits(total.total)} lines in ${measured.length} '
+          'project(s)',
+    );
+  }
+
+  /// Returns the row of a project chart: the project at [path], the bar of
+  /// its [segments] and its [value].
+  static String _projectBar(
+    String path,
+    List<(double, String)> segments,
+    int value,
+  ) => _tag(
+    'div',
+    <String>[
+      _tag('span', _e(path), <String, String>{'class': 'name', 'title': path}),
+      _bar(segments),
+      _tag('span', groupDigits(value), <String, String>{'class': 'num muted'}),
+    ],
+    <String, String>{'class': 'stack-row'},
+  );
+
+  /// Returns the table of the projects of [report] with their outcome,
+  /// findings, coverage and size.
+  static String _projects(MultiProjectReport report) => _card(
+    id: 'projects',
+    title: 'Projects',
+    description: 'Every project below the folder and its outcome',
+    content: _table(
+      <String>[
+        'Project',
+        'Status',
+        'Evaluations passed',
+        'Findings',
+        'Coverage',
+        'Code lines',
+      ],
+      <String>[
+        for (var index = 0; index < report.projects.length; index++)
+          _projectRow(report, index),
+      ],
+      numeric: <int>{2, 3, 4, 5},
+    ),
+    flush: true,
+  );
+
+  /// Returns the row of the project at [index] of [report] in the table of
+  /// the projects.
+  static String _projectRow(MultiProjectReport report, int index) {
+    final AggregateReport project = report.projects[index];
+    final details = <SectionDetails>[
+      for (final ReportSection section in project.sections) section.details,
+    ];
+    final CoverageDetails? coverage = details
+        .whereType<CoverageDetails>()
+        .firstOrNull;
+    final CodebaseDetails? codebase = details
+        .whereType<CodebaseDetails>()
+        .firstOrNull;
+    int count(SectionStatus status) =>
+        project.sections.where((section) => section.status == status).length;
+    final int ran = project.sections.length - count(SectionStatus.skipped);
+    final String? name = project.project;
+    return _tag('tr', <String>[
+      _tag('td', <String>[
+        _tag('a', _e(report.labelOf(index)), <String, String>{
+          'class': 'cell-link',
+          'href': '#${_projectAnchor(report, index)}',
+        }),
+        if (name != null)
+          _tag('span', _e(name), <String, String>{'class': 'cell-sub'}),
+      ]),
+      _tag('td', _statusBadge(project.status)),
+      _tag('td', '${count(SectionStatus.passed)} / $ran', <String, String>{
+        'class': 'num',
+      }),
+      _tag('td', groupDigits(project.findings.length), <String, String>{
+        'class': 'num',
+      }),
+      _tag(
+        'td',
+        coverage == null ? '–' : '${coverage.percent.toStringAsFixed(1)}%',
+        <String, String>{'class': 'num'},
+      ),
+      _tag(
+        'td',
+        codebase == null ? '–' : groupDigits(codebase.total.code),
+        <String, String>{'class': 'num'},
+      ),
+    ]);
+  }
+
+  /// Returns the card with one accordion item per project of [report],
+  /// each with the evaluations of the project.
+  static String _projectDetails(MultiProjectReport report) => _tag(
+    'section',
+    <String>[
+      _cardHeader(
+        'Details',
+        'The evaluations of each project, with their key figures and causes',
+      ),
+      _tag(
+        'div',
+        <String>[
+          for (var index = 0; index < report.projects.length; index++)
+            _projectPanel(report, index),
+        ],
+        <String, String>{'class': 'accordion'},
+      ),
+    ],
+    <String, String>{'class': 'card', 'id': 'details'},
+  );
+
+  /// Returns the accordion item of the project at [index] of [report]: the
+  /// table of its evaluations and one nested item per evaluation.
+  static String _projectPanel(MultiProjectReport report, int index) {
+    final AggregateReport project = report.projects[index];
+    final List<ReportSection> sections = report.sectionsOf(index);
+    final String? name = project.project;
+    final String summary = MultiProjectReport.summaryOf(project);
+    final String badge = project.findings.isEmpty
+        ? ''
+        : _tag(
+            'span',
+            '${groupDigits(project.findings.length)} finding(s)',
+            <String, String>{'class': 'badge badge-secondary'},
+          );
+    final String trigger = _tag(
+      'summary',
+      <String>[
+        _tag(
+          'span',
+          '${_statusIcon(project.status)}${_e(report.labelOf(index))}',
+          <String, String>{'class': 'acc-title'},
+        ),
+        _tag(
+          'span',
+          _e(name == null ? summary : '$name · $summary'),
+          <String, String>{'class': 'acc-summary'},
+        ),
+        badge,
+        _tag('span', _statusLabel(project.status), <String, String>{
+          'class': 'badge badge-outline',
+        }),
+        HtmlIcons.svg(HtmlIcons.chevron, name: 'icon acc-chevron'),
+      ],
+      <String, String>{'class': 'acc-trigger'},
+    );
+    final String content = _tag(
+      'div',
+      <String>[
+        _table(
+          <String>['Evaluation', 'Status', 'Summary', 'Findings'],
+          <String>[
+            for (var at = 0; at < sections.length; at++)
+              _evaluationRow(sections[at], project.sections[at].title),
+          ],
+          numeric: <int>{3},
+        ),
+        _tag(
+          'div',
+          <String>[
+            for (var at = 0; at < sections.length; at++)
+              _panel(sections[at], title: project.sections[at].title),
+          ],
+          <String, String>{'class': 'accordion'},
+        ),
+      ],
+      <String, String>{'class': 'acc-content'},
+    );
+    return _tag(
+      'details',
+      <String>[trigger, content],
+      <String, String>{
+        'class': 'acc-item project',
+        'id': _projectAnchor(report, index),
       },
     );
   }
@@ -1459,6 +1974,11 @@ final class HtmlReportWriter {
 
   /// Returns the id of the accordion item of [section].
   static String _anchor(ReportSection section) => 'section-${section.id}';
+
+  /// Returns the id of the accordion item of the project at [index] of
+  /// [report].
+  static String _projectAnchor(MultiProjectReport report, int index) =>
+      'project-${report.key(index)}';
 
   /// Returns [value] with at most two decimals, for SVG coordinates.
   static String _n(double value) =>

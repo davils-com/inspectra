@@ -26,6 +26,7 @@ import 'package:test/test.dart';
 import 'package:yaml/yaml.dart';
 
 import '../support/fake_git.dart';
+import '../support/fixture.dart';
 import '../support/fixtures.dart';
 
 /// Tests checking the version against the API changes since a release.
@@ -206,8 +207,8 @@ void main() {
   });
 
   group('checkSemver', () {
-    late String root;
-    late String released;
+    final root = Fixture<String>();
+    final released = Fixture<String>();
 
     /// The configuration, with the changelog check when [changelog] is
     /// `true`.
@@ -223,16 +224,16 @@ void main() {
       bool changelog = false,
     }) => checkSemver(
       config(changelog: changelog),
-      root,
-      GitHistory(processRunner: git.runner, workingDirectory: root),
+      root.value,
+      GitHistory(processRunner: git.runner, workingDirectory: root.value),
       from: from,
     );
 
     setUp(() async {
-      root = temporaryDirectory();
-      writeFile(root, 'pubspec.yaml', 'name: app\nversion: 1.0.1\n');
+      root.value = temporaryDirectory();
+      writeFile(root.value, 'pubspec.yaml', 'name: app\nversion: 1.0.1\n');
       writeFile(
-        root,
+        root.value,
         '.dart_tool/package_config.json',
         jsonEncode(<String, Object?>{
           'configVersion': 2,
@@ -247,13 +248,13 @@ void main() {
         }),
       );
       writeFile(
-        root,
+        root.value,
         'lib/app.dart',
         'class Shape {\n  double area() => 0;\n}\n',
       );
-      released = await renderPackageApi(config(), root);
+      released.value = await renderPackageApi(config(), root.value);
       writeFile(
-        root,
+        root.value,
         'lib/app.dart',
         'class Shape {\n  double area() => 0;\n}\n\nint sides() => 4;\n',
       );
@@ -263,7 +264,7 @@ void main() {
       final SemverResult result = await check(
         FakeGit(
           tags: <String>['v0.9.0', 'v1.0.0'],
-          files: <String, String>{'v1.0.0:api/app.api': released},
+          files: <String, String>{'v1.0.0:api/app.api': released.value},
         ),
       );
       expect(result.baseline, 'v1.0.0');
@@ -277,7 +278,7 @@ void main() {
     test('compares with the revision given with --from', () async {
       final git = FakeGit(
         tags: <String>['v1.0.0'],
-        files: <String, String>{'v0.9.0:api/app.api': released},
+        files: <String, String>{'v0.9.0:api/app.api': released.value},
       );
       final SemverResult result = await check(git, from: 'v0.9.0');
       expect(result.baseline, 'v0.9.0');
@@ -292,12 +293,12 @@ void main() {
     });
 
     test('checks that a breaking change is announced', () async {
-      writeFile(root, 'lib/app.dart', 'class Shape {}\n');
-      writeFile(root, 'pubspec.yaml', 'name: app\nversion: 2.0.0\n');
+      writeFile(root.value, 'lib/app.dart', 'class Shape {}\n');
+      writeFile(root.value, 'pubspec.yaml', 'name: app\nversion: 2.0.0\n');
       final SemverResult result = await check(
         FakeGit(
           tags: <String>['v1.0.0'],
-          files: <String, String>{'v1.0.0:api/app.api': released},
+          files: <String, String>{'v1.0.0:api/app.api': released.value},
           logs: <String, List<GitCommit>>{
             'v1.0.0..HEAD': <GitCommit>[
               GitCommit(hash: hashOf(1), message: 'refactor: drop area'),
@@ -313,7 +314,7 @@ void main() {
     test('is skipped without a version, a release or a dump', () async {
       final git = FakeGit(
         tags: <String>['v1.0.0'],
-        files: <String, String>{'v1.0.0:api/app.api': released},
+        files: <String, String>{'v1.0.0:api/app.api': released.value},
       );
       expect(
         (await check(FakeGit())).skipped,
@@ -327,7 +328,7 @@ void main() {
         (await check(FakeGit(tags: <String>['v1.0.0']))).skipped,
         startsWith('v1.0.0 has no API dump at api/app.api'),
       );
-      writeFile(root, 'pubspec.yaml', 'name: app\n');
+      writeFile(root.value, 'pubspec.yaml', 'name: app\n');
       expect(
         (await check(git)).skipped,
         'pubspec.yaml declares no version to check.',

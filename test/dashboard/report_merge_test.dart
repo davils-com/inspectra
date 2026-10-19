@@ -20,6 +20,7 @@ import 'package:inspectra/inspectra.dart';
 import 'package:inspectra/src/dashboard/report_merge.dart';
 import 'package:inspectra/src/report/aggregate_report.dart';
 import 'package:inspectra/src/report/json_report_writer.dart';
+import 'package:inspectra/src/report/multi_project_report.dart';
 import 'package:inspectra/src/report/report_section.dart';
 import 'package:inspectra/src/report/section_status.dart';
 import 'package:test/test.dart';
@@ -88,6 +89,83 @@ void main() {
         ('deps.json', deps),
       ], Severity.high).sections.single.status,
       SectionStatus.passed,
+    );
+  });
+
+  test('keeps the projects of a multi-project report apart', () {
+    final String multi = const JsonReportWriter().render(
+      const MultiProjectReport(
+        project: 'mono',
+        projects: <AggregateReport>[
+          AggregateReport(
+            sections: <ReportSection>[
+              ReportSection(
+                id: 'lint',
+                title: 'Lint',
+                status: SectionStatus.failed,
+                summary: 'Summary',
+                findings: <Finding>[
+                  Finding(
+                    ruleId: 'no_else',
+                    source: FindingSource.style,
+                    severity: Severity.low,
+                    title: 'No else',
+                    location: SourceLocation('lib/a.dart'),
+                  ),
+                ],
+              ),
+            ],
+            project: 'core 1.0.0',
+            path: 'core',
+          ),
+          AggregateReport(
+            sections: <ReportSection>[
+              ReportSection(
+                id: 'lint',
+                title: 'Lint',
+                status: SectionStatus.passed,
+                summary: 'Summary',
+              ),
+            ],
+            path: '.',
+          ),
+        ],
+      ),
+      generatedAt,
+    );
+    final AggregateReport merged = mergeReports(<(String, String)>[
+      ('multi.json', multi),
+      ('a.json', aggregate('app 1.0.0', SectionStatus.passed)),
+    ], Severity.unknown);
+    expect(merged.project, 'mono');
+    expect(merged.sections.map((section) => section.id), <String>[
+      'core--lint',
+      'root--lint',
+      'lint',
+    ]);
+    expect(merged.sections.first.title, 'core · Lint');
+    expect(merged.sections[1].title, 'mono · Lint');
+    expect(
+      merged.sections.first.findings.single.location?.path,
+      'core/lib/a.dart',
+    );
+    expect(
+      () => mergeReports(<(String, String)>[
+        (
+          'p.json',
+          jsonEncode(<String, Object?>{
+            'command': 'report',
+            'projects': <Object?>['broken'],
+          }),
+        ),
+      ], Severity.high),
+      throwsA(
+        isA<InvalidInputException>().having(
+          (error) => error.message,
+          'message',
+          'p.json: projects[0] needs a list of sections.',
+        ),
+      ),
     );
   });
 

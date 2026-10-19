@@ -35,18 +35,19 @@ import '../support/archive_fixtures.dart';
 import '../support/fake_http_server.dart';
 import '../support/fake_process_runner.dart';
 import '../support/fake_response.dart';
+import '../support/fixture.dart';
 
 /// Tests how Trivy is located, resolved and downloaded.
 void main() {
   const linux = HostPlatform(OperatingSystem.linux, CpuArchitecture.x64);
-  late FakeHttpServer server;
-  late Directory directory;
-  late FakeProcessRunner runner;
+  final server = Fixture<FakeHttpServer>();
+  final directory = Fixture<Directory>();
+  final runner = Fixture<FakeProcessRunner>();
 
   setUp(() async {
-    server = await FakeHttpServer.start();
-    directory = Directory.systemTemp.createTempSync('trivy_');
-    runner = FakeProcessRunner((executable, arguments) {
+    server.value = await FakeHttpServer.start();
+    directory.value = Directory.systemTemp.createTempSync('trivy_');
+    runner.value = FakeProcessRunner((executable, arguments) {
       if (executable == 'chmod') {
         return const ProcessOutcome(exitCode: 0, stdout: '', stderr: '');
       }
@@ -59,8 +60,8 @@ void main() {
     });
   });
   tearDown(() async {
-    await server.close();
-    directory.deleteSync(recursive: true);
+    await server.value.close();
+    directory.value.deleteSync(recursive: true);
   });
 
   /// Creates a provisioner for [config]; [path] is the `PATH` and
@@ -79,15 +80,15 @@ void main() {
       config: config,
       locator: TrivyLocator(
         resolver: ExecutableResolver(environment: environment, host: linux),
-        processRunner: runner,
+        processRunner: runner.value,
         environment: environment,
-        installRoot: '${directory.path}/cache',
+        installRoot: '${directory.value.path}/cache',
         binaryName: 'trivy',
         searchDirectories: const <String>[],
       ),
       installer: TrivyInstaller(
         transport: transport,
-        processRunner: runner,
+        processRunner: runner.value,
         host: linux,
       ),
       transport: transport,
@@ -104,7 +105,7 @@ void main() {
     });
     final name = 'trivy_${version}_Linux-64bit.tar.gz';
     final String sum = checksum ?? sha256.convert(archive).toString();
-    server
+    server.value
       ..on(
         'GET',
         '/releases/download/v$version/$name',
@@ -130,8 +131,8 @@ void main() {
     download: download,
     useInstalled: useInstalled,
     executable: executable,
-    downloadBaseUrl: '${server.baseUrl}/releases/download',
-    latestReleaseUrl: '${server.baseUrl}/releases/latest',
+    downloadBaseUrl: '${server.value.baseUrl}/releases/download',
+    latestReleaseUrl: '${server.value.baseUrl}/releases/latest',
   );
 
   /// Provisions with a no-op status callback.
@@ -143,7 +144,7 @@ void main() {
       provisioner(config(mode: TrivyMode.disabled)),
     );
     expect(result, isA<TrivyUnavailable>());
-    expect(runner.calls, isEmpty);
+    expect(runner.value.calls, isEmpty);
   });
 
   test('uses the configured executable only', () async {
@@ -161,7 +162,7 @@ void main() {
   });
 
   test('uses an installed Trivy from the PATH', skip: _windowsSkip, () async {
-    final bin = Directory('${directory.path}/bin')..createSync();
+    final bin = Directory('${directory.value.path}/bin')..createSync();
     final file = File('${bin.path}/trivy')..writeAsStringSync('x');
     if (!Platform.isWindows) {
       Process.runSync('chmod', <String>['755', file.path]);
@@ -189,7 +190,7 @@ void main() {
         contains('download'),
       ),
     );
-    expect(server.requests, isEmpty);
+    expect(server.value.requests, isEmpty);
   });
 
   test('never probes or downloads without allowDownload', () async {
@@ -204,7 +205,7 @@ void main() {
         contains('trivy --install'),
       ),
     );
-    expect(server.requests, isEmpty);
+    expect(server.value.requests, isEmpty);
   });
 
   test('does not touch the network in offline mode', () async {
@@ -212,12 +213,12 @@ void main() {
       provisioner(config(), offline: true),
     );
     expect(result, isA<TrivyUnavailable>());
-    expect(server.requests, isEmpty);
+    expect(server.value.requests, isEmpty);
   });
 
   test('skips the download when the host is unreachable', () async {
-    final int port = Uri.parse(server.baseUrl).port;
-    await server.close();
+    final int port = Uri.parse(server.value.baseUrl).port;
+    await server.value.close();
     final unreachable = TrivyConfig(
       downloadBaseUrl: 'http://127.0.0.1:$port/releases/download',
     );
@@ -243,7 +244,7 @@ void main() {
         TrivyOrigin.downloaded,
       ),
     );
-    final installed = File('${directory.path}/cache/0.75.0/trivy');
+    final installed = File('${directory.value.path}/cache/0.75.0/trivy');
     expect(installed.readAsStringSync(), contains('echo trivy'));
     final TrivyProvision second = await run(provisioner(config()));
     expect(
@@ -267,11 +268,14 @@ void main() {
         contains('checksum'),
       ),
     );
-    expect(File('${directory.path}/cache/0.75.0/trivy').existsSync(), isFalse);
+    expect(
+      File('${directory.value.path}/cache/0.75.0/trivy').existsSync(),
+      isFalse,
+    );
   });
 
   test('resolves latest through the release redirect', () async {
-    server.on(
+    server.value.on(
       'GET',
       '/releases/latest',
       const FakeResponse(
@@ -293,7 +297,7 @@ void main() {
     'enforces the pinned version when installed ones are not accepted',
     skip: _windowsSkip,
     () async {
-      final bin = Directory('${directory.path}/bin')..createSync();
+      final bin = Directory('${directory.value.path}/bin')..createSync();
       final file = File('${bin.path}/trivy')..writeAsStringSync('x');
       if (!Platform.isWindows) {
         Process.runSync('chmod', <String>['755', file.path]);
@@ -324,7 +328,7 @@ void main() {
 
   test('falls back to the newest cached version for latest offline', () async {
     for (final version in <String>['0.9.0', '0.75.0', '0.10.0']) {
-      File('${directory.path}/cache/$version/trivy')
+      File('${directory.value.path}/cache/$version/trivy')
         ..createSync(recursive: true)
         ..writeAsStringSync('x');
     }

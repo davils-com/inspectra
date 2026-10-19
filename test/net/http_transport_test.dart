@@ -21,17 +21,18 @@ import 'package:test/test.dart';
 
 import '../support/fake_http_server.dart';
 import '../support/fake_response.dart';
+import '../support/fixture.dart';
 
 /// Tests the HTTP transport against a loopback server.
 void main() {
-  late FakeHttpServer server;
-  late List<Duration> sleeps;
+  final server = Fixture<FakeHttpServer>();
+  final sleeps = Fixture<List<Duration>>();
 
   setUp(() async {
-    server = await FakeHttpServer.start();
-    sleeps = <Duration>[];
+    server.value = await FakeHttpServer.start();
+    sleeps.value = <Duration>[];
   });
-  tearDown(() => server.close());
+  tearDown(() => server.value.close());
 
   /// Creates a transport with the given [offline] mode.
   HttpTransport transport({bool offline = false}) => HttpTransport(
@@ -40,12 +41,12 @@ void main() {
       retryBaseDelay: const Duration(milliseconds: 10),
     ),
     environment: const Environment(<String, String>{}),
-    sleep: (delay) async => sleeps.add(delay),
+    sleep: (delay) async => sleeps.value.add(delay),
   );
 
   test('retries transient failures and returns the final response', () async {
     var calls = 0;
-    server.onDynamic('GET', '/flaky', (_) {
+    server.value.onDynamic('GET', '/flaky', (_) {
       calls++;
       return calls < 3
           ? const FakeResponse(
@@ -55,65 +56,68 @@ void main() {
           : FakeResponse.text('ok');
     });
     final HttpResult result = await transport().get(
-      Uri.parse('${server.baseUrl}/flaky'),
+      Uri.parse('${server.value.baseUrl}/flaky'),
     );
     expect(result.statusCode, 200);
     expect(result.text, 'ok');
-    expect(sleeps, <Duration>[
+    expect(sleeps.value, <Duration>[
       const Duration(seconds: 2),
       const Duration(seconds: 2),
     ]);
   });
 
   test('returns the last retryable response when attempts run out', () async {
-    server.on('GET', '/down', const FakeResponse(503));
+    server.value.on('GET', '/down', const FakeResponse(503));
     final HttpResult result = await transport().get(
-      Uri.parse('${server.baseUrl}/down'),
+      Uri.parse('${server.value.baseUrl}/down'),
     );
     expect(result.statusCode, 503);
-    expect(sleeps, hasLength(2));
+    expect(sleeps.value, hasLength(2));
   });
 
   test('does not retry client errors', () async {
     final HttpResult result = await transport().get(
-      Uri.parse('${server.baseUrl}/missing'),
+      Uri.parse('${server.value.baseUrl}/missing'),
     );
     expect(result.isNotFound, isTrue);
-    expect(sleeps, isEmpty);
+    expect(sleeps.value, isEmpty);
   });
 
   test('rejects responses larger than the limit', () {
-    server.on('GET', '/big', FakeResponse.text('x' * 100));
+    server.value.on('GET', '/big', FakeResponse.text('x' * 100));
     expect(
-      () => transport().get(Uri.parse('${server.baseUrl}/big'), maxBytes: 10),
+      () => transport().get(
+        Uri.parse('${server.value.baseUrl}/big'),
+        maxBytes: 10,
+      ),
       throwsA(isA<UnavailableException>()),
     );
   });
 
   test('never connects in offline mode', () async {
     expect(
-      () => transport(offline: true).get(Uri.parse(server.baseUrl)),
+      () => transport(offline: true).get(Uri.parse(server.value.baseUrl)),
       throwsA(isA<UnavailableException>()),
     );
     expect(
       await transport(offline: true)
-          .probe(Uri.parse(server.baseUrl), const Duration(seconds: 1)),
+          .probe(Uri.parse(server.value.baseUrl), const Duration(seconds: 1)),
       isFalse,
     );
-    expect(server.requests, isEmpty);
+    expect(server.value.requests, isEmpty);
   });
 
   test('probe treats any HTTP answer as reachable', () async {
     final bool reachable = await transport().probe(
-      Uri.parse('${server.baseUrl}/'),
+      Uri.parse('${server.value.baseUrl}/'),
       const Duration(seconds: 2),
     );
     expect(reachable, isTrue);
   });
 
   test('reports unreachable hosts after all attempts', () async {
-    final int port = Uri.parse(server.baseUrl).port;
-    await server.close();
+    final int port = Uri.parse(server.value.baseUrl).port;
+    await server.value.close();
     expect(
       () => transport().get(Uri.parse('http://127.0.0.1:$port/')),
       throwsA(isA<UnavailableException>()),

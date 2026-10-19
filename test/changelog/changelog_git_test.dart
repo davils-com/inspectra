@@ -25,6 +25,7 @@ import 'dart:io';
 import 'package:inspectra/inspectra.dart';
 import 'package:test/test.dart';
 
+import '../support/fixture.dart';
 import '../support/test_harness.dart';
 
 /// Whether Git is installed; the test is skipped otherwise.
@@ -38,10 +39,10 @@ final bool _gitInstalled = () {
 
 /// Tests `changelog generate --write` against a real repository.
 void main() {
-  late Directory directory;
+  final directory = Fixture<Directory>();
 
-  setUp(() => directory = Directory.systemTemp.createTempSync('git_'));
-  tearDown(() => directory.deleteSync(recursive: true));
+  setUp(() => directory.value = Directory.systemTemp.createTempSync('git_'));
+  tearDown(() => directory.value.deleteSync(recursive: true));
 
   /// Runs `git` with [arguments] in the repository.
   void git(List<String> arguments) {
@@ -55,7 +56,7 @@ void main() {
       '-c',
       'tag.gpgsign=false',
       ...arguments,
-    ], workingDirectory: directory.path);
+    ], workingDirectory: directory.value.path);
     expect(result.exitCode, 0, reason: '${result.stderr}');
   }
 
@@ -64,7 +65,7 @@ void main() {
       (Process.runSync('git', const <String>[
                 'rev-parse',
                 'HEAD',
-              ], workingDirectory: directory.path).stdout
+              ], workingDirectory: directory.value.path).stdout
               as String)
           .trim();
 
@@ -73,7 +74,7 @@ void main() {
       git(<String>['commit', '--allow-empty', '-q', '-m', message]);
 
   test('writes the release of the commits since the last tag', () async {
-    File('${directory.path}/pubspec.yaml')
+    File('${directory.value.path}/pubspec.yaml')
         .writeAsStringSync('name: demo\nversion: 1.0.0\n');
     git(<String>['init', '-q']);
     commit('feat: first feature');
@@ -86,7 +87,7 @@ void main() {
       'Revert "fix: temporary workaround"\n\nThis reverts commit ${head()}.',
     );
     final harness = TestHarness(
-      workingDirectory: directory.path,
+      workingDirectory: directory.value.path,
       processRunner: const SystemProcessRunner(),
     );
     final int code = await harness.run(<String>[
@@ -97,7 +98,7 @@ void main() {
       '2026-10-04',
     ]);
     expect(code, 0, reason: harness.err);
-    final String changelog = File('${directory.path}/CHANGELOG.md')
+    final String changelog = File('${directory.value.path}/CHANGELOG.md')
         .readAsStringSync();
     expect(changelog, startsWith('# Changelog\n'));
     expect(changelog, contains('## 2.0.0 - 2026-10-04'));

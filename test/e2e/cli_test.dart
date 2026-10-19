@@ -26,16 +26,17 @@ import '../support/archive_fixtures.dart';
 import '../support/fake_http_server.dart';
 import '../support/fake_process_runner.dart';
 import '../support/fake_response.dart';
+import '../support/fixture.dart';
 import '../support/test_harness.dart';
 
 /// Runs the complete command line in-process against fake services.
 void main() {
-  late FakeHttpServer server;
+  final server = Fixture<FakeHttpServer>();
   final harnesses = <TestHarness>[];
 
-  setUp(() async => server = await FakeHttpServer.start());
+  setUp(() async => server.value = await FakeHttpServer.start());
   tearDown(() async {
-    await server.close();
+    await server.value.close();
     for (final harness in harnesses) {
       harness.dispose();
     }
@@ -67,8 +68,8 @@ dependencies:
     final harness = TestHarness.withFiles(
       files,
       environment: <String, String>{
-        'INSPECTRA_NETWORK_OSV_URL': server.baseUrl,
-        'INSPECTRA_NETWORK_PUB_HOSTED_URL': server.baseUrl,
+        'INSPECTRA_NETWORK_OSV_URL': server.value.baseUrl,
+        'INSPECTRA_NETWORK_PUB_HOSTED_URL': server.value.baseUrl,
         'INSPECTRA_NETWORK_MAX_ATTEMPTS': '1',
       },
       processRunner: processRunner,
@@ -79,7 +80,7 @@ dependencies:
 
   /// Serves one advisory for `http 0.13.0`.
   void serveAdvisory() {
-    server
+    server.value
       ..on(
         'POST',
         '/v1/querybatch',
@@ -346,7 +347,7 @@ dependencies:
     /// Serves package `evil` 1.0.0 whose archive contains [files].
     void servePackage(Map<String, String> files) {
       final Uint8List archive = buildTarGz(files);
-      server
+      server.value
         ..on(
           'GET',
           '/api/packages/evil',
@@ -357,7 +358,8 @@ dependencies:
               <String, Object?>{
                 'version': '1.0.0',
                 'published': '2020-01-01T00:00:00Z',
-                'archive_url': '${server.baseUrl}/archives/evil-1.0.0.tar.gz',
+                'archive_url':
+                    '${server.value.baseUrl}/archives/evil-1.0.0.tar.gz',
                 'archive_sha256': sha256.convert(archive).toString(),
               },
             ],
@@ -397,7 +399,7 @@ dependencies:
 
     test('rejects archives that do not match their checksum', () async {
       servePackage(<String, String>{'lib/a.dart': ''});
-      server.on(
+      server.value.on(
         'GET',
         '/archives/evil-1.0.0.tar.gz',
         FakeResponse(200, body: buildTarGz(<String, String>{'x': 'y'})),

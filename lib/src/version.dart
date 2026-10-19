@@ -21,4 +21,4 @@
 /// so that natively compiled executables report their version without reading
 /// any file at runtime, in contrast to tools that read the `pubspec.yaml` of
 /// whatever project happens to be the current working directory.
-const inspectraVersion = '2.0.0';
+const inspectraVersion = '2.1.0';

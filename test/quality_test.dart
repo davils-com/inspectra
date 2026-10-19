@@ -20,6 +20,7 @@ import 'package:inspectra/inspectra.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
+import 'support/fixture.dart';
 import 'support/fixtures.dart';
 
 /// A Dart file that `dart format` leaves unchanged.
@@ -173,20 +174,20 @@ void main() {
   });
 
   group('checkFormat', () {
-    late String root;
-    late FormatConfig config;
+    final root = Fixture<String>();
+    final config = Fixture<FormatConfig>();
 
     setUp(() {
-      root = temporaryDirectory();
-      config = InspectraConfig.defaults('app').format;
-      writeFile(root, 'lib/good.dart', _formatted);
-      writeFile(root, 'lib/bad.dart', _unformatted);
+      root.value = temporaryDirectory();
+      config.value = InspectraConfig.defaults('app').format;
+      writeFile(root.value, 'lib/good.dart', _formatted);
+      writeFile(root.value, 'lib/bad.dart', _unformatted);
     });
 
     test('reports the files that are not formatted', () async {
       final FormatResult result = await checkFormat(
-        config: config,
-        packageRoot: root,
+        config: config.value,
+        packageRoot: root.value,
         files: ['lib/bad.dart', 'lib/good.dart'],
       );
 
@@ -195,15 +196,15 @@ void main() {
       expect(result.failed, isTrue);
       expect(result.render(), contains('1 of 2 file(s) are not formatted.'));
       expect(
-        File(p.join(root, 'lib/bad.dart')).readAsStringSync(),
+        File(p.join(root.value, 'lib/bad.dart')).readAsStringSync(),
         _unformatted,
       );
     });
 
     test('formats the files with fix', () async {
       final FormatResult result = await checkFormat(
-        config: config,
-        packageRoot: root,
+        config: config.value,
+        packageRoot: root.value,
         files: ['lib/bad.dart', 'lib/good.dart'],
         fix: true,
       );
@@ -211,12 +212,15 @@ void main() {
       expect(result.fixed, isTrue);
       expect(result.failed, isFalse);
       expect(result.unformatted, ['lib/bad.dart']);
-      expect(File(p.join(root, 'lib/bad.dart')).readAsStringSync(), _formatted);
+      expect(
+        File(p.join(root.value, 'lib/bad.dart')).readAsStringSync(),
+        _formatted,
+      );
     });
 
     test('honours an explicit page width', () async {
       writeFile(
-        root,
+        root.value,
         'lib/long.dart',
         "void main() => print('a string long enough for forty columns');\n",
       );
@@ -226,7 +230,7 @@ void main() {
 
       final FormatResult result = await checkFormat(
         config: narrow,
-        packageRoot: root,
+        packageRoot: root.value,
         files: ['lib/long.dart'],
       );
 
@@ -234,12 +238,12 @@ void main() {
     });
 
     test('explains a file that does not parse', () async {
-      writeFile(root, 'lib/broken.dart', 'void main( {');
+      writeFile(root.value, 'lib/broken.dart', 'void main( {');
 
       await expectLater(
         checkFormat(
-          config: config,
-          packageRoot: root,
+          config: config.value,
+          packageRoot: root.value,
           files: ['lib/broken.dart'],
         ),
         throwsA(isA<DartToolException>()),

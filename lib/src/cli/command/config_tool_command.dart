@@ -39,9 +39,10 @@ abstract class ConfigToolCommand extends InspectraCommand {
   /// the configuration exactly as `scan` with the same options would.
   ConfigToolCommand(super.context) : super(withTrivyOptions: true);
 
-  /// Reads the configuration of the project with the same configuration
-  /// file and overrides as the command line [results] give, and the values
-  /// [cli] on top, recording every value in [recorder].
+  /// Reads the configuration of the project, or of the project in
+  /// [directory], with the same configuration file and overrides as the
+  /// command line [results] give, and the values [cli] on top, recording
+  /// every value in [recorder].
   ///
   /// Returns the configuration and the overrides, which know every option
   /// that can be overridden.
@@ -51,13 +52,14 @@ abstract class ConfigToolCommand extends InspectraCommand {
     ArgResults results,
     ConfigRecorder recorder, {
     Map<String, String> cli = const <String, String>{},
+    String? directory,
   }) {
     final overrides = ConfigOverrides(
       cli: <String, String>{...SharedOptions.overrides(results), ...cli},
       environment: context.environment,
     );
     final InspectraConfig config = loadConfig(
-      projectDirectory,
+      directory ?? projectDirectory,
       overrides: overrides,
       configFile: results['config'] as String?,
       requirePubspec: false,
@@ -67,9 +69,9 @@ abstract class ConfigToolCommand extends InspectraCommand {
     return (config, overrides);
   }
 
-  /// Checks the configuration of the project, read as the command line
-  /// [results] give, for risky settings, with the ignore rules of [session]
-  /// applied.
+  /// Checks the configuration of the project of [session], read as the
+  /// command line [results] give, for risky settings, with the ignore rules
+  /// of [session] applied.
   ///
   /// Returns the report of `config lint`.
   ///
@@ -79,6 +81,7 @@ abstract class ConfigToolCommand extends InspectraCommand {
     final (InspectraConfig config, ConfigOverrides overrides) = recordConfig(
       results,
       recorder,
+      directory: session.workingDirectory,
     );
     final List<Finding> findings = lintConfig(
       config: config,

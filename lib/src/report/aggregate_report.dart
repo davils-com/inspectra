@@ -27,12 +27,15 @@ import 'package:inspectra/src/report/section_status.dart';
 ///
 /// The JSON body has `project`, `status` and `sections`, one object per
 /// section with `id`, `title`, `status`, `summary`, `metrics`, `findings`
-/// and, where known, `reason` and `details`.
+/// and, where known, `reason` and `details`. A project of a multi-project
+/// report also has its `path`.
 final class AggregateReport implements CommandReport, IncompleteReport {
-  /// Creates the report of [sections] about [project].
+  /// Creates the report of [sections] about [project], found at [path]
+  /// below the folder of a multi-project report.
   const AggregateReport({
     required this.sections,
     this.project,
+    this.path,
     this.command = 'report',
   });
 
@@ -41,6 +44,11 @@ final class AggregateReport implements CommandReport, IncompleteReport {
 
   /// The name of the package or project, if known.
   final String? project;
+
+  /// The directory of the project relative to the folder of a multi-project
+  /// report, with `/` as separator and `.` for the folder itself; `null` for
+  /// the report of a single project.
+  final String? path;
 
   /// The name of the command.
   @override
@@ -95,6 +103,7 @@ final class AggregateReport implements CommandReport, IncompleteReport {
   @override
   Map<String, Object?> toJson() => <String, Object?>{
     'project': ?project,
+    'path': ?path,
     'status': status.id,
     'sections': <Map<String, Object?>>[
       for (final section in sections) section.toJson(),

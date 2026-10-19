@@ -23,6 +23,8 @@ import 'package:inspectra/src/style/rules/license_header_rule.dart';
 import 'package:inspectra/src/style/rules/no_comments_rule.dart';
 import 'package:inspectra/src/style/rules/no_default_case_rule.dart';
 import 'package:inspectra/src/style/rules/no_else_rule.dart';
+import 'package:inspectra/src/style/rules/no_late_rule.dart';
+import 'package:inspectra/src/style/rules/no_platform_imports_rule.dart';
 import 'package:inspectra/src/style/rules/no_wildcard_case_rule.dart';
 import 'package:inspectra/src/style/rules/one_public_type_per_file_rule.dart';
 import 'package:inspectra/src/style/rules/one_type_per_file_rule.dart';
@@ -110,6 +112,121 @@ int h(Object a) => switch (a) { int() => 1, _ => 0 };
         check(const NoWildcardCaseRule(), source).map((v) => v.line),
         <int>[13, 17],
       );
+    });
+  });
+
+  group('no_late', () {
+    test('reports a late field, a late top level and a late local', () {
+      const source = '''
+late final int top = 1;
+
+class Sample {
+  late final int field = 2;
+  late int pending;
+
+  void run() {
+    late final int local;
+    local = 3;
+  }
+}
+''';
+
+      expect(check(const NoLateRule(), source).map((v) => v.line), <int>[
+        1,
+        4,
+        5,
+        8,
+      ]);
+    });
+
+    test('accepts variables without late and late as a plain name', () {
+      const source = '''
+final int top = 1;
+
+void run() {
+  final late = 2;
+  final int later = late;
+}
+''';
+
+      expect(check(const NoLateRule(), source), isEmpty);
+    });
+
+    test('is part of strict only', () {
+      expect(StylePreset.strict.ruleIds, contains('no_late'));
+      expect(StylePreset.recommended.ruleIds, isNot(contains('no_late')));
+      expect(StylePreset.none.ruleIds, isNot(contains('no_late')));
+    });
+  });
+
+  group('no_platform_imports', () {
+    /// Runs the rule on [source] as the file at [path].
+    ///
+    /// Returns the lines of the violations it reports.
+    List<int> lines(String path, String source) => <int>[
+      for (final StyleViolation violation in check(
+        const NoPlatformImportsRule(),
+        source,
+        path: path,
+      ))
+        violation.line,
+    ];
+
+    test('reports every platform library a library imports or exports', () {
+      const source = '''
+import 'dart:async';
+import 'dart:io';
+import 'dart:ffi' as ffi;
+import 'dart:js_interop';
+export 'dart:html';
+import 'dart:isolate';
+import 'package:meta/meta.dart';
+''';
+
+      expect(lines('lib/src/host.dart', source), <int>[2, 3, 4, 5, 6]);
+    });
+
+    test('accepts a platform library in a variant of a conditional '
+        'import', () {
+      expect(
+        <List<int>>[
+          lines('lib/src/host_io.dart', "import 'dart:io';\n"),
+          lines('lib/src/current_platform_native.dart', "import 'dart:ffi';\n"),
+          lines('lib/src/host_web.dart', "import 'dart:js_interop';\n"),
+        ],
+        <List<int>>[<int>[], <int>[], <int>[]],
+      );
+    });
+
+    test('refuses dart:mirrors even in a variant', () {
+      expect(lines('lib/src/host_io.dart', "import 'dart:mirrors';\n"), <int>[
+        1,
+      ]);
+    });
+
+    test('accepts the conditional import itself', () {
+      const source = '''
+export 'package:sample/src/host_web.dart'
+    if (dart.library.io) 'package:sample/src/host_io.dart';
+''';
+
+      expect(lines('lib/src/host.dart', source), isEmpty);
+    });
+
+    test('leaves files outside lib alone', () {
+      expect(
+        <List<int>>[
+          lines('tool/verify.dart', "import 'dart:io';\n"),
+          lines('test/host_test.dart', "import 'dart:io';\n"),
+        ],
+        <List<int>>[<int>[], <int>[]],
+      );
+    });
+
+    test('is part of no preset', () {
+      for (final StylePreset preset in StylePreset.values) {
+        expect(preset.ruleIds, isNot(contains('no_platform_imports')));
+      }
     });
   });
 
@@ -358,6 +475,7 @@ final class Square implements Shape {}
         StylePreset.strict.ruleIds,
         builtInStyleRuleIds.toSet().difference(<String>{
           'one_public_type_per_file',
+          'no_platform_imports',
         }),
       );
       expect(StylePreset.none.ruleIds, isEmpty);

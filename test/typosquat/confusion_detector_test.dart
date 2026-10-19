@@ -24,17 +24,18 @@ import 'package:test/test.dart';
 
 import '../support/fake_http_server.dart';
 import '../support/fake_response.dart';
+import '../support/fixture.dart';
 
 /// Tests dependency confusion detection.
 void main() {
-  late FakeHttpServer server;
+  final server = Fixture<FakeHttpServer>();
 
-  setUp(() async => server = await FakeHttpServer.start());
-  tearDown(() => server.close());
+  setUp(() async => server.value = await FakeHttpServer.start());
+  tearDown(() => server.value.close());
 
   /// Serves a public package [name] whose latest version is [latest].
   void serve(String name, String latest) {
-    server.on(
+    server.value.on(
       'GET',
       '/api/packages/$name',
       FakeResponse.json(<String, Object?>{
@@ -55,10 +56,10 @@ void main() {
           config: const NetworkConfig(),
           environment: const Environment(<String, String>{}),
         ),
-        baseUrl: server.baseUrl,
+        baseUrl: server.value.baseUrl,
       ),
       concurrency: 2,
-      mirrorUrl: server.baseUrl,
+      mirrorUrl: server.value.baseUrl,
     );
     final List<Finding> findings = await detector.analyze(
       dependencies,

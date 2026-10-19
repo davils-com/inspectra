@@ -21,21 +21,28 @@ import 'package:inspectra/src/changelog/changelog_check.dart';
 import 'package:inspectra/src/changelog/changelog_document.dart';
 import 'package:test/test.dart';
 
+import '../support/fixture.dart';
+
 /// Tests validating changelogs.
 void main() {
-  late Directory directory;
+  final directory = Fixture<Directory>();
 
-  setUp(() => directory = Directory.systemTemp.createTempSync('changelog_'));
-  tearDown(() => directory.deleteSync(recursive: true));
+  setUp(
+    () => directory.value = Directory.systemTemp.createTempSync('changelog_'),
+  );
+  tearDown(() => directory.value.deleteSync(recursive: true));
 
   /// Writes the package files and checks the changelog.
   ChangelogCheckResult check({String? changelog, String version = '1.1.0'}) {
-    File('${directory.path}/pubspec.yaml')
+    File('${directory.value.path}/pubspec.yaml')
         .writeAsStringSync('name: demo\nversion: $version\n');
     if (changelog != null) {
-      File('${directory.path}/CHANGELOG.md').writeAsStringSync(changelog);
+      File('${directory.value.path}/CHANGELOG.md').writeAsStringSync(changelog);
     }
-    return checkChangelog(InspectraConfig.defaults('demo'), directory.path);
+    return checkChangelog(
+      InspectraConfig.defaults('demo'),
+      directory.value.path,
+    );
   }
 
   /// Returns the messages of the problems of [result].
@@ -105,10 +112,11 @@ void main() {
   });
 
   test('checks only the format of packages without a version', () {
-    File('${directory.path}/CHANGELOG.md').writeAsStringSync('# Changelog\n');
+    File('${directory.value.path}/CHANGELOG.md')
+        .writeAsStringSync('# Changelog\n');
     final ChangelogCheckResult withoutPubspec = checkChangelog(
       InspectraConfig.defaults('demo'),
-      directory.path,
+      directory.value.path,
     );
     expect(withoutPubspec.version, isNull);
     expect(withoutPubspec.render(), 'CHANGELOG.md is well-formed.');

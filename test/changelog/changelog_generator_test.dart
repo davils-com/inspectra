@@ -25,6 +25,7 @@ import 'package:inspectra/src/changelog/changelog_writer.dart';
 import 'package:test/test.dart';
 
 import '../support/fake_git.dart';
+import '../support/fixture.dart';
 
 /// Tests generating and writing releases.
 void main() {
@@ -160,10 +161,12 @@ void main() {
   });
 
   group('ChangelogWriter', () {
-    late Directory directory;
+    final directory = Fixture<Directory>();
 
-    setUp(() => directory = Directory.systemTemp.createTempSync('writer_'));
-    tearDown(() => directory.deleteSync(recursive: true));
+    setUp(
+      () => directory.value = Directory.systemTemp.createTempSync('writer_'),
+    );
+    tearDown(() => directory.value.deleteSync(recursive: true));
 
     const release = ChangelogRelease(
       version: '1.1.0',
@@ -177,7 +180,7 @@ void main() {
     );
 
     test('creates the changelog with the introduction', () {
-      final path = '${directory.path}/docs/CHANGELOG.md';
+      final path = '${directory.value.path}/docs/CHANGELOG.md';
       const ChangelogWriter().write(path, release, '## 1.1.0\n\n- x\n');
       expect(
         File(path).readAsStringSync(),
@@ -186,7 +189,7 @@ void main() {
     });
 
     test('refuses to document a version twice', () {
-      final path = '${directory.path}/CHANGELOG.md';
+      final path = '${directory.value.path}/CHANGELOG.md';
       File(path).writeAsStringSync('## [1.1.0]\n\n- old\n');
       expect(
         () => const ChangelogWriter().write(path, release, '## 1.1.0\n'),
@@ -196,7 +199,7 @@ void main() {
     });
 
     test('reports files it cannot write', () {
-      final path = '${directory.path}/CHANGELOG.md';
+      final path = '${directory.value.path}/CHANGELOG.md';
       Directory(path).createSync();
       expect(
         () => const ChangelogWriter().write(path, release, '## 1.1.0\n'),

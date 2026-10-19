@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import 'package:inspectra/src/config/coverage_run.dart';
 import 'package:inspectra/src/config/coverage_runner.dart';
 import 'package:inspectra/src/config/generated_files.dart';
 import 'package:inspectra/src/config/yaml_reader.dart';
@@ -29,6 +30,7 @@ final class CoverageConfig {
     required this.exclude,
     required this.minLineCoverage,
     required this.testArguments,
+    this.merge = const <CoverageRun>[],
   });
 
   /// Reads the settings from the `coverage:` section in [yaml].
@@ -52,6 +54,7 @@ final class CoverageConfig {
         max: 100,
       ),
       testArguments: yaml.strings('test_arguments', fallback: const []),
+      merge: CoverageRun.listFromYaml(yaml),
     );
     yaml.ensureFullyRead();
     return config;
@@ -80,4 +83,12 @@ final class CoverageConfig {
   /// Extra arguments passed to the test runner, for example
   /// `['--exclude-tags', 'slow']`.
   final List<String> testArguments;
+
+  /// Further test runs whose coverage is merged into the report, such as
+  /// the tests of a preset or of a browser; empty by default.
+  ///
+  /// A run on the VM counts like the main run. A browser only reports the
+  /// lines it ran, so its hits count only for lines the VM knows; a file
+  /// that only a browser loaded is listed apart and not counted.
+  final List<CoverageRun> merge;
 }

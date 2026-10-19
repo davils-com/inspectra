@@ -26,6 +26,7 @@ import 'dart:io';
 import 'package:inspectra/inspectra.dart';
 import 'package:test/test.dart';
 
+import '../support/fixture.dart';
 import '../support/test_harness.dart';
 
 /// Whether Git is installed; the test is skipped otherwise.
@@ -39,17 +40,17 @@ final bool _gitInstalled = () {
 
 /// Tests `api semver` and the semver step of `check` with real Git.
 void main() {
-  late Directory directory;
-  late TestHarness harness;
+  final directory = Fixture<Directory>();
+  final harness = Fixture<TestHarness>();
 
   setUp(() {
-    directory = Directory.systemTemp.createTempSync('semver_');
-    harness = TestHarness(
-      workingDirectory: directory.path,
+    directory.value = Directory.systemTemp.createTempSync('semver_');
+    harness.value = TestHarness(
+      workingDirectory: directory.value.path,
       processRunner: const SystemProcessRunner(),
     );
   });
-  tearDown(() => directory.deleteSync(recursive: true));
+  tearDown(() => directory.value.deleteSync(recursive: true));
 
   /// Runs `git` with [arguments] in the repository.
   void git(List<String> arguments) {
@@ -63,20 +64,21 @@ void main() {
       '-c',
       'tag.gpgsign=false',
       ...arguments,
-    ], workingDirectory: directory.path);
+    ], workingDirectory: directory.value.path);
     expect(result.exitCode, 0, reason: '${result.stderr}');
   }
 
   /// Writes [content] to [path] in the repository.
-  void write(String path, String content) => File('${directory.path}/$path')
-    ..parent.createSync(recursive: true)
-    ..writeAsStringSync(content);
+  void write(String path, String content) =>
+      File('${directory.value.path}/$path')
+        ..parent.createSync(recursive: true)
+        ..writeAsStringSync(content);
 
   /// Runs the command line with [arguments] and clears the output first.
   Future<int> run(List<String> arguments) {
-    (harness.context.out as StringBuffer).clear();
-    (harness.context.err as StringBuffer).clear();
-    return harness.run(arguments);
+    (harness.value.context.out as StringBuffer).clear();
+    (harness.value.context.err as StringBuffer).clear();
+    return harness.value.run(arguments);
   }
 
   test('compares the API with the dump of the last release', () async {
@@ -105,21 +107,21 @@ void main() {
       'abstract class Shape {\n  double area();\n}\n\nenum Color { red }\n',
     );
     git(<String>['init', '-q']);
-    expect(await run(<String>['api', 'semver']), 0, reason: harness.err);
-    expect(harness.out, contains('skipped, no release tag'));
+    expect(await run(<String>['api', 'semver']), 0, reason: harness.value.err);
+    expect(harness.value.out, contains('skipped, no release tag'));
 
     git(<String>['add', '.']);
     git(<String>['commit', '-q', '-m', 'feat: shapes']);
     git(<String>['tag', 'v0.1.0']);
-    expect(await run(<String>['api', 'semver']), 0, reason: harness.err);
-    expect(harness.out, contains('v0.1.0 has no API dump'));
+    expect(await run(<String>['api', 'semver']), 0, reason: harness.value.err);
+    expect(harness.value.out, contains('v0.1.0 has no API dump'));
 
-    expect(await run(<String>['api', 'dump']), 0, reason: harness.err);
+    expect(await run(<String>['api', 'dump']), 0, reason: harness.value.err);
     git(<String>['add', '.']);
     git(<String>['commit', '-q', '-m', 'chore: record the API']);
     git(<String>['tag', 'v1.0.0']);
-    expect(await run(<String>['api', 'semver']), 0, reason: harness.err);
-    expect(harness.out, contains('0 change(s) since v1.0.0 (1.0.0)'));
+    expect(await run(<String>['api', 'semver']), 0, reason: harness.value.err);
+    expect(harness.value.out, contains('0 change(s) since v1.0.0 (1.0.0)'));
 
     write(
       'lib/shapes.dart',
@@ -128,11 +130,14 @@ void main() {
     );
     git(<String>['commit', '-q', '-am', 'feat: add blue']);
     expect(await run(<String>['api', 'semver']), 1);
-    expect(harness.out, contains('  - breaking  Color.blue: The enum value'));
-    expect(harness.out, contains('version 2.0.0 or higher is required'));
-    expect(harness.out, contains('No commit since v1.0.0 is marked'));
+    expect(
+      harness.value.out,
+      contains('  - breaking  Color.blue: The enum value'),
+    );
+    expect(harness.value.out, contains('version 2.0.0 or higher is required'));
+    expect(harness.value.out, contains('No commit since v1.0.0 is marked'));
     expect(await run(<String>['check']), 1);
-    expect(harness.out, contains('API semver: 1 change(s) since v1.0.0'));
+    expect(harness.value.out, contains('API semver: 1 change(s) since v1.0.0'));
     expect(
       await run(<String>[
         'report',
@@ -141,18 +146,18 @@ void main() {
       ]),
       1,
     );
-    expect(harness.out, contains('[FAILED]  Semantic versioning'));
+    expect(harness.value.out, contains('[FAILED]  Semantic versioning'));
 
     write('pubspec.yaml', 'name: shapes\nversion: 2.0.0-dev.1\n');
     git(<String>['commit', '-q', '-am', 'feat!: release 2.0.0']);
     expect(await run(<String>['api', 'semver', '-f', 'json']), 0);
-    final json = jsonDecode(harness.out) as Map<String, Object?>;
+    final json = jsonDecode(harness.value.out) as Map<String, Object?>;
     expect(json['required'], '2.0.0');
     expect(json['failed'], isFalse);
 
     expect(await run(<String>['api', 'semver', '--from', 'v0.1.0']), 0);
-    expect(harness.out, contains('v0.1.0 has no API dump'));
+    expect(harness.value.out, contains('v0.1.0 has no API dump'));
     expect(await run(<String>['api', 'semver', '--from', 'v9.9.9']), 64);
-    expect(harness.err, contains('Git cannot resolve'));
+    expect(harness.value.err, contains('Git cannot resolve'));
   }, skip: _gitInstalled ? null : 'Git is not installed.');
 }

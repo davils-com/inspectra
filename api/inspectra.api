@@ -312,12 +312,13 @@ final class ConventionalCommit {
 final class CoverageConfig {
   final bool enabled;
   final List<String> exclude;
+  final List<CoverageRun> merge;
   final double? minLineCoverage;
   final String outputDirectory;
   final List<String> reportOn;
   final CoverageRunner runner;
   final List<String> testArguments;
-  const CoverageConfig({required bool enabled, required CoverageRunner runner, required String outputDirectory, required List<String> reportOn, required List<String> exclude, required double? minLineCoverage, required List<String> testArguments});
+  const CoverageConfig({required bool enabled, required CoverageRunner runner, required String outputDirectory, required List<String> reportOn, required List<String> exclude, required double? minLineCoverage, required List<String> testArguments, List<CoverageRun> merge = const <CoverageRun>[]});
   factory CoverageConfig.fromYaml(YamlReader yaml);
 }
 
@@ -327,17 +328,31 @@ class CoverageException implements Exception {
   String toString();
 }
 
+final class CoverageHits {
+  final bool complete;
+  final Map<String, HitMap> files;
+  const CoverageHits(Map<String, HitMap> files, {required bool complete});
+}
+
 class CoverageReport {
+  final List<String> browserOnly;
   final List<FileCoverage> files;
   final String lcovPath;
   final double? minLineCoverage;
   final List<String> untested;
-  CoverageReport({required List<FileCoverage> files, required List<String> untested, required String lcovPath, required double? minLineCoverage});
+  CoverageReport({required List<FileCoverage> files, required List<String> untested, required String lcovPath, required double? minLineCoverage, List<String> browserOnly = const <String>[]});
   bool get failed;
   int get linesFound;
   int get linesHit;
   double get percent;
   String render();
+}
+
+final class CoverageRun {
+  final String name;
+  final List<String> testArguments;
+  const CoverageRun({required String name, List<String> testArguments = const []});
+  static List<CoverageRun> listFromYaml(YamlReader yaml);
 }
 
 enum CoverageRunner {
@@ -1054,11 +1069,13 @@ Future<String> dumpApi(InspectraConfig config, String packageRoot);
 
 SemverResult evaluateSemver({required String before, required String after, required String baseline, required Version? baselineVersion, required Version version, List<ConventionalCommit>? commits, String dumpPath = ''});
 
-const String inspectraVersion = '2.0.0';
+const String inspectraVersion = '2.1.0';
 
 InspectraConfig loadConfig(String packageRoot, {ConfigOverrides? overrides, String? configFile, bool requirePubspec = true, ConfigRecorder? recorder, String? cacheRoot});
 
 ConfigLayer loadProjectLayer(String packageRoot, {Environment? environment, String? configFile});
+
+({Map<String, HitMap> files, List<String> incompleteOnly}) mergeCoverageHits(List<CoverageHits> runs);
 
 const List<String> offlineArguments = <String>['--skip-db-update', '--offline-scan'];
 

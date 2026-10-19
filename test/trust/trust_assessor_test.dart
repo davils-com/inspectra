@@ -23,13 +23,14 @@ import 'package:test/test.dart';
 
 import '../support/fake_http_server.dart';
 import '../support/fake_response.dart';
+import '../support/fixture.dart';
 
 /// Tests the trust assessment against a fake pub repository.
 void main() {
-  late FakeHttpServer server;
+  final server = Fixture<FakeHttpServer>();
 
-  setUp(() async => server = await FakeHttpServer.start());
-  tearDown(() => server.close());
+  setUp(() async => server.value = await FakeHttpServer.start());
+  tearDown(() => server.value.close());
 
   /// Creates an assessor evaluated at 2026-10-01.
   TrustAssessor assessor() => TrustAssessor(
@@ -38,7 +39,7 @@ void main() {
         config: const NetworkConfig(),
         environment: const Environment(<String, String>{}),
       ),
-      baseUrl: server.baseUrl,
+      baseUrl: server.value.baseUrl,
     ),
     thresholds: const TrustThresholds(),
     clock: Clock(() => DateTime.utc(2026, 10)),
@@ -46,7 +47,7 @@ void main() {
 
   /// Serves a package listing with versions published at [dates].
   void serve(String name, Map<String, String> dates, {bool retracted = false}) {
-    server.on(
+    server.value.on(
       'GET',
       '/api/packages/$name',
       FakeResponse.json(<String, Object?>{
@@ -69,7 +70,7 @@ void main() {
       '1.0.0': '2020-01-01T00:00:00Z',
       '2.0.0': '2026-01-01T00:00:00Z',
     });
-    server
+    server.value
       ..on(
         'GET',
         '/api/packages/good/score',
@@ -95,7 +96,7 @@ void main() {
     serve('fresh', <String, String>{
       '0.0.1': '2026-09-30T20:00:00Z',
     }, retracted: true);
-    server.on(
+    server.value.on(
       'GET',
       '/api/packages/fresh/options',
       FakeResponse.json(<String, Object?>{'isDiscontinued': true}),

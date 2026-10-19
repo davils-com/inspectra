@@ -36,7 +36,8 @@ final class ArchiveEntry {
     required this.bytes,
     this.mode = 0,
     this.linkTarget,
-  });
+  }) : path = _normalise(name),
+       isText = kind == ArchiveEntryKind.file && !_hasNul(bytes);
 
   /// The raw entry name exactly as stored in the archive.
   final String name;
@@ -55,11 +56,14 @@ final class ArchiveEntry {
 
   /// The entry name with backslashes turned into slashes and leading `./`
   /// segments removed, used for display and matching.
-  late final String path = _normalise(name);
+  final String path;
+
+  /// The content decoded as UTF-8 on first use, once [text] is read.
+  String? _text;
 
   /// The content decoded as UTF-8, replacing malformed sequences so that a
   /// binary or mis-encoded file can never abort a scan.
-  late final String text = utf8.decode(bytes, allowMalformed: true);
+  String get text => _text ??= utf8.decode(bytes, allowMalformed: true);
 
   /// Whether this entry is a regular file.
   bool get isFile => kind == ArchiveEntryKind.file;
@@ -72,16 +76,20 @@ final class ArchiveEntry {
   /// A file containing a NUL byte within its first 8 KiB is treated as
   /// binary (images, fonts, WebAssembly, executables); text scanners skip
   /// it because arbitrary bytes decode to arbitrary "characters".
-  late final bool isText =
-      isFile &&
-      !bytes
-          .take(
-            bytes.length < _textProbeLength ? bytes.length : _textProbeLength,
-          )
-          .contains(0);
+  final bool isText;
 
   /// The file name without its directories.
   String get baseName => path.split('/').last;
+
+  /// Whether the first [_textProbeLength] bytes of [bytes] hold a NUL byte.
+  ///
+  /// Returns `true` for content that looks binary.
+  static bool _hasNul(Uint8List bytes) {
+    final int probed = bytes.length < _textProbeLength
+        ? bytes.length
+        : _textProbeLength;
+    return bytes.take(probed).contains(0);
+  }
 
   /// Normalises [raw] for display without resolving `..` segments, so that
   /// traversal attempts stay visible to the archive scanner.

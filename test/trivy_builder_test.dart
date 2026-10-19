@@ -23,6 +23,7 @@ import 'package:inspectra/builder.dart';
 import 'package:inspectra/src/builders/trivy_builder.dart';
 import 'package:test/test.dart';
 
+import 'support/fixture.dart';
 import 'support/fixtures.dart';
 
 /// A Trivy report with one critical secret in `lib/a.dart`.
@@ -55,14 +56,14 @@ $extra''';
 
 /// Tests the Trivy builders against a fake Trivy executable.
 void main() {
-  late String directory;
+  final directory = Fixture<String>();
 
-  setUp(() => directory = temporaryDirectory());
+  setUp(() => directory.value = temporaryDirectory());
 
   test(
     'runs the secret scan on the build sources and fails on findings',
     () async {
-      final trivy = FakeTrivy(directory, report: _secretReport);
+      final trivy = FakeTrivy(directory.value, report: _secretReport);
 
       final TestBuilderResult result = await testBuilder(
         TrivyBuilder.secret(inPackage: (_) => true),
@@ -86,7 +87,7 @@ void main() {
   );
 
   test('skips build outputs that are not files of the package', () async {
-    final trivy = FakeTrivy(directory);
+    final trivy = FakeTrivy(directory.value);
 
     await testBuilder(
       TrivyBuilder.secret(inPackage: (id) => id.path != 'lib/generated.dart'),
@@ -104,7 +105,7 @@ void main() {
   });
 
   test('only warns when findings do not fail the scan', () async {
-    final trivy = FakeTrivy(directory, report: _secretReport);
+    final trivy = FakeTrivy(directory.value, report: _secretReport);
 
     final TestBuilderResult result = await testBuilder(
       TrivyBuilder.secret(inPackage: (_) => true),
@@ -127,7 +128,7 @@ void main() {
   });
 
   test('skips scans that do not run on build', () async {
-    final trivy = FakeTrivy(directory);
+    final trivy = FakeTrivy(directory.value);
 
     await testBuilder(
       vulnerabilityScanBuilder(BuilderOptions.empty),
@@ -143,7 +144,7 @@ void main() {
   test(
     'scans the lock file when the vulnerability scan runs on build',
     () async {
-      final trivy = FakeTrivy(directory);
+      final trivy = FakeTrivy(directory.value);
 
       await testBuilder(
         vulnerabilityScanBuilder(BuilderOptions.empty),
@@ -167,7 +168,7 @@ void main() {
   );
 
   test('fails when Trivy itself fails', () async {
-    final trivy = FakeTrivy(directory, exitCode: 2);
+    final trivy = FakeTrivy(directory.value, exitCode: 2);
 
     final TestBuilderResult result = await testBuilder(
       TrivyBuilder.secret(inPackage: (_) => true),

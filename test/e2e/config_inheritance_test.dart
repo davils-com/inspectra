@@ -21,16 +21,17 @@ import 'package:test/test.dart';
 
 import '../support/fake_http_server.dart';
 import '../support/fake_response.dart';
+import '../support/fixture.dart';
 import '../support/test_harness.dart';
 
 /// Runs configuration inheritance through the command line.
 void main() {
-  late FakeHttpServer server;
+  final server = Fixture<FakeHttpServer>();
   final harnesses = <TestHarness>[];
 
-  setUp(() async => server = await FakeHttpServer.start());
+  setUp(() async => server.value = await FakeHttpServer.start());
   tearDown(() async {
-    await server.close();
+    await server.value.close();
     for (final harness in harnesses) {
       harness.dispose();
     }
@@ -138,10 +139,10 @@ style:
 
   test('config fetch downloads remote bases for offline use', () async {
     const remote = 'min_severity: medium\n';
-    server.on('GET', '/base.yaml', FakeResponse.text(remote));
+    server.value.on('GET', '/base.yaml', FakeResponse.text(remote));
     final String sha = ConfigBaseCache.digestOf(utf8.encode(remote));
     final TestHarness harness = project(
-      'extends:\n  - url: ${server.baseUrl}/base.yaml\n    sha256: $sha\n',
+      'extends:\n  - url: ${server.value.baseUrl}/base.yaml\n    sha256: $sha\n',
     );
     expect(await harness.run(<String>['config', 'fetch', '--offline']), 69);
     expect(harness.err, contains('offline'));
@@ -163,7 +164,7 @@ style:
       0,
     );
     expect(harness.out, contains('min_severity: medium'));
-    expect(server.requests, hasLength(1));
+    expect(server.value.requests, hasLength(1));
   });
 
   test('config lint warns about a pubspec section that is ignored', () async {

@@ -7,7 +7,7 @@
 
 <link-summary>Every option of the coverage section, with examples.</link-summary>
 
-<card-summary>runner, output_directory, report_on, exclude, min_line_coverage and test_arguments.</card-summary>
+<card-summary>runner, output_directory, report_on, exclude, min_line_coverage, test_arguments and merge.</card-summary>
 
 ```yaml
 inspectra:
@@ -19,6 +19,7 @@ inspectra:
     exclude: ['**.g.dart', '**.freezed.dart', '**.mocks.dart']   # default
     min_line_coverage: 80              # unset by default
     test_arguments: []                 # default
+    merge: []                          # default
 ```
 
 | Key | Type | Default | Description |
@@ -30,6 +31,7 @@ inspectra:
 | `exclude` | list of globs | three generated-code globs | Files left out of the report. |
 | `min_line_coverage` | number 0-100 | unset | The threshold in percent. |
 | `test_arguments` | list of strings | `[]` | Extra arguments for the runner. |
+| `merge` | list of runs | `[]` | Further runs whose coverage is merged into the report. |
 
 ## runner
 
@@ -42,9 +44,13 @@ compiled to an executable, `dart` from the `PATH`.
 ```text
 coverage/
 ├── lcov.info        # the report
-└── raw/             # the runner's raw output, emptied before every run
-    └── test/
-        └── calculator_test.dart.vm.json
+├── raw/             # the runner's raw output, emptied before every run
+│   └── test/
+│       └── calculator_test.dart.vm.json
+└── merge/           # the raw output of each run of merge, one directory per name
+    └── chrome/
+        └── test/
+            └── calculator_test.dart.chrome.json
 ```
 
 Add the directory to `.gitignore`. Inspectra's own repository uses `/coverage/`, anchored to the root - an unanchored
@@ -120,13 +126,51 @@ That runs `dart test --coverage=coverage/raw --exclude-tags slow --concurrency 4
 |:--|:--|
 | `[--exclude-tags, integration]` | Leave out slow or flaky suites |
 | `[test/unit]` | Only the tests in a directory |
-| `[--platform, vm]` | Only VM tests, if the suite also runs on browsers |
+| `[--platform, vm]` | Only VM tests, if the suite also runs on browsers; add the browser through `merge` |
 | `[--concurrency, '1']` | Run test files one after another |
 
 <warning>
-Coverage is collected in the Dart VM. Tests on other platforms, such as <code>--platform chrome</code>, run but
-contribute no coverage.
+The main run counts only what the Dart VM reports. Tests on other platforms, such as <code>--platform chrome</code>,
+contribute through a run of <a href="#merge">merge</a>.
 </warning>
+
+## merge
+
+Further test runs whose coverage is merged into the report: the tests of a preset that skips tests by default, or the
+tests in a browser. Each run has a `name`, which names its directory below `<output_directory>/merge/`, and its
+`test_arguments`:
+
+```yaml
+inspectra:
+  coverage:
+    test_arguments: [--exclude-tags, native]
+    merge:
+      - name: native
+        test_arguments: [--preset, native]
+      - name: chrome
+        test_arguments: [--platform, chrome]
+```
+
+That runs `dart test` three times, once with the arguments of the main run and once for each entry, and reports the
+merged hits. A name consists of lower case letters, digits, `-` and `_`; two runs may not share one. Every layer of
+the configuration adds its runs, so a shared base can name the runs every package has.
+
+How the hits are merged:
+
+| Hits of | Count for |
+|:--|:--|
+| The VM (`*.vm.json`) | Every executable line, ran or not, added up across the runs |
+| A browser (`*.chrome.json` and the like) | Only the lines a run on the VM knows |
+
+A browser maps the JavaScript it ran back to Dart lines through source maps. It leaves out the lines that did not
+run, and some of the lines it reports are no executable lines for the VM. Its hits therefore only raise lines a VM run
+already found. A file that only a browser loaded, such as a `_web.dart` variant of a conditional import, has no known
+line count: the report lists it under *only loaded in a browser*, and it is not part of the percentage. Keep such
+files thin and put the logic in files the VM loads.
+
+<note>
+The SDK collects no coverage under <code>--compiler dart2wasm</code>; a run with it contributes nothing.
+</note>
 
 <seealso>
     <category ref="coverage">

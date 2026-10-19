@@ -19,6 +19,8 @@ import 'dart:io';
 import 'package:inspectra/inspectra.dart';
 import 'package:test/test.dart';
 
+import '../support/fixture.dart';
+
 /// Tests reading an API dump back into its declarations.
 void main() {
   const dump = '''
@@ -65,34 +67,37 @@ library package:shapes/extra.dart
 @Deprecated mixin class Painter {}
 ''';
 
-  late ApiSurface surface;
+  final surface = Fixture<ApiSurface>();
 
-  setUp(() => surface = ApiSurface.parse(dump));
+  setUp(() => surface.value = ApiSurface.parse(dump));
 
   test('reads the libraries and their declarations', () {
-    expect(surface.libraries.keys, <String>[
+    expect(surface.value.libraries.keys, <String>[
       'package:shapes/shapes.dart',
       'package:shapes/extra.dart',
     ]);
-    expect(surface.libraries['package:shapes/shapes.dart']!.keys, <String>[
-      'sides',
-      'area',
-      'Measure',
-      'Shape',
-      'Color',
-      'Empty',
-      'ShapeList',
-      'extension on String',
-      'Id',
-    ]);
-    expect(surface.libraries['package:shapes/extra.dart']!.keys, <String>[
+    expect(
+      surface.value.libraries['package:shapes/shapes.dart']!.keys,
+      <String>[
+        'sides',
+        'area',
+        'Measure',
+        'Shape',
+        'Color',
+        'Empty',
+        'ShapeList',
+        'extension on String',
+        'Id',
+      ],
+    );
+    expect(surface.value.libraries['package:shapes/extra.dart']!.keys, <String>[
       'Painter',
     ]);
   });
 
   test('keys the members by name, accessor and operator', () {
     final ApiDeclaration shape =
-        surface.libraries['package:shapes/shapes.dart']!['Shape']!;
+        surface.value.libraries['package:shapes/shapes.dart']!['Shape']!;
     expect(shape.isType, isTrue);
     expect(
       shape.line,
@@ -113,21 +118,21 @@ library package:shapes/extra.dart
 
   test('reads enum values apart from the members', () {
     final ApiDeclaration color =
-        surface.libraries['package:shapes/shapes.dart']!['Color']!;
+        surface.value.libraries['package:shapes/shapes.dart']!['Color']!;
     expect(color.values, <String>['red', 'green']);
     expect(color.members.keys, <String>['code', 'get label']);
   });
 
   test('reads empty types and top-level lines', () {
     final Map<String, ApiDeclaration> shapes =
-        surface.libraries['package:shapes/shapes.dart']!;
+        surface.value.libraries['package:shapes/shapes.dart']!;
     expect(shapes['Empty']!.isType, isTrue);
     expect(shapes['Empty']!.members, isEmpty);
     expect(shapes['Id']!.line, 'extension type Id(int value)');
     expect(shapes['sides']!.isType, isFalse);
     expect(shapes['sides']!.line, 'const int sides = 4;');
     expect(
-      surface.libraries['package:shapes/extra.dart']!['Painter']!.line,
+      surface.value.libraries['package:shapes/extra.dart']!['Painter']!.line,
       '@Deprecated mixin class Painter',
     );
   });

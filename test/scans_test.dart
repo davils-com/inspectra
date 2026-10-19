@@ -23,22 +23,23 @@ import 'package:inspectra/inspectra.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
+import 'support/fixture.dart';
 import 'support/fixtures.dart';
 
 /// Tests the Trivy scans against a fake Trivy executable.
 void main() {
-  late String root;
-  late InspectraConfig defaults;
+  final root = Fixture<String>();
+  final defaults = Fixture<InspectraConfig>();
 
   setUp(() {
-    root = temporaryDirectory();
-    defaults = InspectraConfig.defaults('app');
+    root.value = temporaryDirectory();
+    defaults.value = InspectraConfig.defaults('app');
   });
 
   group('scanSecrets', () {
     test('scans exactly the selected files under their own paths', () async {
       final trivy = FakeTrivy(
-        root,
+        root.value,
         report: {
           'Results': [
             {
@@ -59,7 +60,7 @@ void main() {
 
       final ScanResult result = await scanSecrets(
         trivy: Trivy(executable: trivy.executable, environment: const {}),
-        config: defaults.trivy.secret,
+        config: defaults.value.trivy.secret,
         files: {
           'lib/config.dart': utf8.encode('const token = "...";'),
           'pubspec.yaml': utf8.encode('name: app'),
@@ -93,7 +94,7 @@ void main() {
     test('is skipped when no file matches', () async {
       final ScanResult result = await scanSecrets(
         trivy: Trivy(),
-        config: defaults.trivy.secret,
+        config: defaults.value.trivy.secret,
         files: const {},
       );
 
@@ -105,7 +106,7 @@ void main() {
   group('scanLicenses', () {
     setUp(() {
       writeResolvedPackage(
-        root,
+        root.value,
         dependencies: ['http', 'copyleft', 'bare', 'local'],
         devDependencies: ['test'],
         packages: [
@@ -144,12 +145,15 @@ void main() {
 
     test('reports forbidden, unclassified and missing licenses of shipped '
         'dependencies', () async {
-      final trivy = FakeTrivy(p.join(root, 'app'), report: licenseReport());
+      final trivy = FakeTrivy(
+        p.join(root.value, 'app'),
+        report: licenseReport(),
+      );
 
       final ScanResult result = await scanLicenses(
         trivy: Trivy(executable: trivy.executable, environment: const {}),
-        config: defaults.trivy.license,
-        graph: await PackageGraph.load(p.join(root, 'app')),
+        config: defaults.value.trivy.license,
+        graph: await PackageGraph.load(p.join(root.value, 'app')),
       );
 
       expect(trivy.scannedFiles, [
@@ -173,7 +177,10 @@ void main() {
     });
 
     test('honours ignored licenses, ignored packages and severities', () async {
-      final trivy = FakeTrivy(p.join(root, 'app'), report: licenseReport());
+      final trivy = FakeTrivy(
+        p.join(root.value, 'app'),
+        report: licenseReport(),
+      );
       final LicenseScanConfig config = InspectraConfig.parse({
         'trivy': {
           'license': {
@@ -187,7 +194,7 @@ void main() {
       final ScanResult result = await scanLicenses(
         trivy: Trivy(executable: trivy.executable, environment: const {}),
         config: config,
-        graph: await PackageGraph.load(p.join(root, 'app')),
+        graph: await PackageGraph.load(p.join(root.value, 'app')),
       );
 
       expect(result.findings.map((finding) => finding.id), ['MIT']);
@@ -216,11 +223,11 @@ void main() {
     };
 
     test('scans the lock file as is, dev dependencies included', () async {
-      final trivy = FakeTrivy(root, report: report);
+      final trivy = FakeTrivy(root.value, report: report);
 
       final ScanResult result = await scanVulnerabilities(
         trivy: Trivy(executable: trivy.executable, environment: const {}),
-        config: defaults.trivy.vulnerability,
+        config: defaults.value.trivy.vulnerability,
         lockContent: 'packages: {}\n',
       );
 
@@ -232,12 +239,12 @@ void main() {
 
     test('narrows the lock file to shipped dependencies on request', () async {
       writeResolvedPackage(
-        root,
+        root.value,
         dependencies: ['http'],
         devDependencies: ['test'],
         packages: [const FakePackage('http'), const FakePackage('test')],
       );
-      final trivy = FakeTrivy(root);
+      final trivy = FakeTrivy(root.value);
       final VulnerabilityScanConfig config = InspectraConfig.parse({
         'trivy': {
           'vulnerability': {
@@ -246,7 +253,9 @@ void main() {
           },
         },
       }, packageName: 'app').trivy.vulnerability;
-      final PackageGraph graph = await PackageGraph.load(p.join(root, 'app'));
+      final PackageGraph graph = await PackageGraph.load(
+        p.join(root.value, 'app'),
+      );
 
       await scanVulnerabilities(
         trivy: Trivy(executable: trivy.executable, environment: const {}),
@@ -260,7 +269,7 @@ void main() {
     });
 
     test('drops ignored vulnerabilities by CVE or GHSA identifier', () async {
-      final trivy = FakeTrivy(root, report: report);
+      final trivy = FakeTrivy(root.value, report: report);
       final VulnerabilityScanConfig config = InspectraConfig.parse({
         'trivy': {
           'vulnerability': {
@@ -279,7 +288,7 @@ void main() {
     });
 
     test('does not fail on findings when told not to', () async {
-      final trivy = FakeTrivy(root, report: report);
+      final trivy = FakeTrivy(root.value, report: report);
       final VulnerabilityScanConfig config = InspectraConfig.parse({
         'trivy': {
           'vulnerability': {'fail_on_findings': false},
@@ -301,14 +310,14 @@ void main() {
     test(
       'treats a non-zero exit as a failure of Trivy, not a finding',
       () async {
-        final trivy = FakeTrivy(root, exitCode: 1);
+        final trivy = FakeTrivy(root.value, exitCode: 1);
 
         await expectLater(
           Trivy(
             executable: trivy.executable,
             environment: const {},
           ).scanFilesystem(
-            target: root,
+            target: root.value,
             scanners: const ['vuln'],
             severity: const [Severity.high],
           ),
@@ -326,10 +335,10 @@ void main() {
     test('explains a missing executable', () async {
       await expectLater(
         Trivy(
-          executable: p.join(root, 'missing'),
+          executable: p.join(root.value, 'missing'),
           environment: const {},
         ).scanFilesystem(
-          target: root,
+          target: root.value,
           scanners: const ['vuln'],
           severity: const [Severity.high],
         ),
@@ -361,15 +370,15 @@ void main() {
 
   group('collectFiles', () {
     test('applies the include and exclude globs', () {
-      writeFile(root, 'lib/a.dart', 'a');
-      writeFile(root, 'pubspec.yaml', 'name: app');
-      writeFile(root, 'README.md', 'readme');
-      writeFile(root, 'build/generated.dart', 'generated');
-      writeFile(root, '.dart_tool/cache.json', '{}');
-      writeFile(root, 'packages/sub/build/x.yaml', 'x');
+      writeFile(root.value, 'lib/a.dart', 'a');
+      writeFile(root.value, 'pubspec.yaml', 'name: app');
+      writeFile(root.value, 'README.md', 'readme');
+      writeFile(root.value, 'build/generated.dart', 'generated');
+      writeFile(root.value, '.dart_tool/cache.json', '{}');
+      writeFile(root.value, 'packages/sub/build/x.yaml', 'x');
 
       final Map<String, List<int>> files = collectFiles(
-        root,
+        root.value,
         SecretScanConfig.defaultInclude,
         SecretScanConfig.defaultExclude,
       );
@@ -380,19 +389,19 @@ void main() {
 
   group('resolveSecretConfig', () {
     test('uses trivy-secret.yaml only when it exists', () {
-      expect(resolveSecretConfig(root, null), isNull);
+      expect(resolveSecretConfig(root.value, null), isNull);
 
-      writeFile(root, 'trivy-secret.yaml', 'rules: []');
+      writeFile(root.value, 'trivy-secret.yaml', 'rules: []');
 
       expect(
-        resolveSecretConfig(root, null),
-        p.join(root, 'trivy-secret.yaml'),
+        resolveSecretConfig(root.value, null),
+        p.join(root.value, 'trivy-secret.yaml'),
       );
     });
 
     test('requires an explicitly configured file to exist', () {
       expect(
-        () => resolveSecretConfig(root, 'missing.yaml'),
+        () => resolveSecretConfig(root.value, 'missing.yaml'),
         throwsA(isA<InspectraConfigException>()),
       );
     });

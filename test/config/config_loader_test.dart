@@ -19,19 +19,22 @@ import 'dart:io';
 import 'package:inspectra/inspectra.dart';
 import 'package:test/test.dart';
 
+import '../support/fixture.dart';
+
 /// Tests layered configuration loading and validation.
 void main() {
-  late Directory directory;
+  final directory = Fixture<Directory>();
 
   setUp(() {
-    directory = Directory.systemTemp.createTempSync('cfg_');
-    File('${directory.path}/pubspec.yaml').writeAsStringSync('name: demo\n');
+    directory.value = Directory.systemTemp.createTempSync('cfg_');
+    File('${directory.value.path}/pubspec.yaml')
+        .writeAsStringSync('name: demo\n');
   });
-  tearDown(() => directory.deleteSync(recursive: true));
+  tearDown(() => directory.value.deleteSync(recursive: true));
 
   /// Writes [content] as `inspectra.yaml` into the test directory.
   void writeConfig(String content) =>
-      File('${directory.path}/inspectra.yaml').writeAsStringSync(content);
+      File('${directory.value.path}/inspectra.yaml').writeAsStringSync(content);
 
   /// Loads the configuration with [environment] and [cli] overrides.
   InspectraConfig load({
@@ -39,7 +42,7 @@ void main() {
     Map<String, String> cli = const <String, String>{},
     String? configFile,
   }) => loadConfig(
-    directory.path,
+    directory.value.path,
     overrides: ConfigOverrides(cli: cli, environment: Environment(environment)),
     configFile: configFile,
   );
@@ -79,14 +82,14 @@ network:
   });
 
   test('reads the inspectra section of pubspec.yaml', () {
-    File('${directory.path}/pubspec.yaml').writeAsStringSync(
+    File('${directory.value.path}/pubspec.yaml').writeAsStringSync(
       'name: demo\ninspectra:\n  typosquat:\n    allow: [htpp]\n',
     );
     expect(load().typosquat.allow, <String>['htpp']);
   });
 
   test('names broken ignore rules of pubspec.yaml by their full path', () {
-    File('${directory.path}/pubspec.yaml')
+    File('${directory.value.path}/pubspec.yaml')
         .writeAsStringSync('name: demo\ninspectra:\n  ignore:\n    - id: X\n');
     expect(
       load,
@@ -236,10 +239,10 @@ ignore:
   });
 
   test('works outside of a package when allowed', () {
-    File('${directory.path}/pubspec.yaml').deleteSync();
+    File('${directory.value.path}/pubspec.yaml').deleteSync();
     expect(load, throwsA(isA<FileSystemException>()));
     final InspectraConfig config = loadConfig(
-      directory.path,
+      directory.value.path,
       requirePubspec: false,
     );
     expect(config.packageName, 'package');

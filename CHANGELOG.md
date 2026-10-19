@@ -4,6 +4,48 @@ All notable changes to this project are documented in this file. The format foll
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## 2.1.0
+
+### Reports and dashboards
+
+- `inspectra report --recursive` (`-r`) reports every Dart package at or below the directory in one report: each
+  directory with a `pubspec.yaml`, the roots and members of pub workspaces and nested workspaces included, without
+  `.dart_tool`, `.git` and other hidden directories, `build`, `coverage`, `node_modules`, `Pods` and `ephemeral`. Each
+  project runs every evaluation with its own configuration, as `-C <project> report` would; one whose configuration
+  cannot be read becomes an error section and the others still run. It is the default in a directory without
+  `pubspec.yaml` that has packages below it; `--no-recursive` reports the directory itself. A single package reports
+  as before.
+- The HTML dashboard of several projects has a sidebar of the projects, key figures across them - projects passed,
+  findings, the coverage of all measured lines, the lines of code -, charts of the projects with the most findings
+  and the largest projects, a table of the projects, the finding explorer of all of them and an accordion item per
+  project with its evaluations. A link to a project or a nested section opens it.
+- JSON: `projects`, the report of each project with its new `path`, instead of `sections`. The other formats see the
+  sections of every project with the path of the project leading their id and title, and with the files of the
+  findings relative to the directory. `--merge` reads such reports.
+- In such a report, the codebase section of a project leaves out the projects below it, such as the members of a
+  workspace, so that no line is counted twice.
+
+### Coverage
+
+- `coverage.merge`, further test runs whose coverage is merged into the report, each with a `name` and its
+  `test_arguments`, such as the tests of a preset or the tests in a browser; every layer adds its runs. The hits of
+  the VM add up; the hits of a browser, which only reports the lines that ran, count only for lines a VM run knows.
+  A file only a browser loaded is listed in the new `CoverageReport.browserOnly`, and as `browserOnly` in the JSON of
+  the coverage section, and is not counted. A suite a run skips as a whole, such as one whose tag is skipped, writes
+  a report without hits, which is left out. The public `CoverageRun`, `CoverageHits` and `mergeCoverageHits`.
+
+### Style check
+
+- `no_late`, a built-in rule that reports the `late` modifier of every field, top level and local
+  variable, so that no read can fail with a `LateInitializationError`. It is part of the `strict`
+  preset, so a package on `strict` reports its `late` variables after the update;
+  `rules: {no_late: false}` switches it off. Ported from the custom rule of Essentia.
+- `no_platform_imports`, a built-in rule that reports every platform library - `dart:io`,
+  `dart:ffi`, `dart:html`, `dart:js_interop` and the others - a file under `lib/` imports or exports,
+  unless the file is a variant of a conditional import (`_io`, `_native`, `_web`); `dart:mirrors`
+  is refused everywhere. It is part of no preset and is switched on with
+  `rules: {no_platform_imports: true}`. Ported from the custom rule of Cryptia.
+
 ## 2.0.0
 
 ### Baseline

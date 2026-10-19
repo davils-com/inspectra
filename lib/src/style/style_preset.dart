@@ -32,8 +32,8 @@ enum StylePreset {
   }),
 
   /// The strictest selection: documentation on every declaration, one type
-  /// per file including private ones, no comments, no `else` and
-  /// exhaustive switches without `default` or `_`.
+  /// per file including private ones, no comments, no `else`, exhaustive
+  /// switches without `default` or `_`, and no `late` variables.
   strict('strict', <String>{
     'license_header',
     'public_docs',
@@ -44,6 +44,7 @@ enum StylePreset {
     'no_else',
     'no_default_case',
     'no_wildcard_case',
+    'no_late',
   });
 
   /// Creates a preset with its configuration [id] and its [ruleIds].
