@@ -1,7 +1,7 @@
 # Inheritance and central policies
 
 <primary-label ref="config"/>
-<secondary-label ref="since-1-1"/>
+<secondary-label ref="since-2-0"/>
 
 <show-structure for="chapter" depth="2"/>
 
