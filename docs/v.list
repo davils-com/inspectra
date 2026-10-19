@@ -4,7 +4,7 @@
     <!-- Product identity -->
     <var name="product" value="Inspectra"/>
     <var name="package" value="inspectra"/>
-    <var name="version" value="2.0.0"/>
+    <var name="version" value="2.1.0"/>
 
     <!-- Compatibility. The single source of truth for every version stated in the
          documentation. min_dart is the SDK lower bound of pubspec.yaml, which CI tests
@@ -15,9 +15,9 @@
     <var name="min_dart" value="3.13.4"/>
     <var name="tested_dart" value="3.13.5"/>
     <var name="tested_trivy" value="0.75.0"/>
-    <var name="min_build_runner" value="2.16.1"/>
+    <var name="min_build_runner" value="2.17.1"/>
     <var name="analyzer_version" value="14.4.0"/>
-    <var name="build_version" value="4.0.11"/>
+    <var name="build_version" value="5.0.0"/>
     <var name="coverage_version" value="1.15.1"/>
 
     <!-- Files and directories Inspectra reads or writes -->

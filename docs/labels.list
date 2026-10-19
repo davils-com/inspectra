@@ -40,7 +40,7 @@
     <secondary-label id="since-1-0" name="Since 1.0.0" color="blue">
         Available since Inspectra 1.0.0.
     </secondary-label>
-    <secondary-label id="since-1-1" name="Since 1.1.0" color="blue">
-        Available since Inspectra 1.1.0.
+    <secondary-label id="since-2-0" name="Since 2.0.0" color="blue">
+        Available since Inspectra 2.0.0.
     </secondary-label>
 </labels>

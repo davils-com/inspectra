@@ -26,8 +26,8 @@ or as a dev dependency, which also enables the `build_runner` builders:
 
 ```yaml
 dev_dependencies:
-  build_runner: ^2.16.1
-  inspectra: ^1.0.0
+  build_runner: ^2.17.1
+  inspectra: ^2.1.0
 ```
 
 Native executables for Linux, macOS and Windows with SHA-256 checksums are attached to every
