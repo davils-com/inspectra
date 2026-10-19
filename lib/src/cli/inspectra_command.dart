@@ -124,10 +124,7 @@ abstract class InspectraCommand extends Command<int> {
         workingDirectory: directory,
       );
       session = active;
-      _warnAboutExpiredRules(active);
-      for (final DeprecatedOption option in config.deprecatedOptions) {
-        console.warning(option.describe());
-      }
+      warnAboutConfig(active);
       final CommandReport report = await execute(active, results);
       return _finish(report, results, active);
     } on InspectraException catch (error) {
@@ -167,17 +164,23 @@ abstract class InspectraCommand extends Command<int> {
     );
   }
 
-  /// Warns about ignore rules whose expiry date has passed.
-  void _warnAboutExpiredRules(CommandSession session) {
+  /// Warns about the ignore rules of the configuration of [session] whose
+  /// expiry date has passed and about its deprecated options; [project]
+  /// leads every warning when given.
+  void warnAboutConfig(CommandSession session, {String? project}) {
+    final lead = project == null ? '' : '$project: ';
     final DateTime now = context.clock.now();
     for (final IgnoreRule rule in session.config.ignore.where(
       (r) => r.isExpired(now),
     )) {
       final String? day = rule.expires?.toIso8601String().substring(0, 10);
       session.console.warning(
-        'The ignore rule for ${rule.id} expired on '
+        '${lead}The ignore rule for ${rule.id} expired on '
         '$day and no longer suppresses findings ("${rule.reason}").',
       );
+    }
+    for (final DeprecatedOption option in session.config.deprecatedOptions) {
+      session.console.warning('$lead${option.describe()}');
     }
   }
 

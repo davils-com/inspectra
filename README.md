@@ -357,7 +357,8 @@ steps:
 append the directory of its `trivy.executable` to `$GITHUB_PATH` before `build_runner`. Use
 `-f markdown >> "$GITHUB_STEP_SUMMARY"` for a job summary, and
 `dart run inspectra report -f html -o inspectra-report.html` for one dashboard of every evaluation to keep as an
-artifact. GitLab, Azure DevOps, Jenkins and SonarQube read `-f gitlab`, `junit`, `checkstyle` and `sonarqube`.
+artifact; `report --recursive`, the default in a folder without `pubspec.yaml`, puts every package below the
+directory - workspaces and their members included - into one dashboard with an overview across the projects. GitLab, Azure DevOps, Jenkins and SonarQube read `-f gitlab`, `junit`, `checkstyle` and `sonarqube`.
 
 ## Contributing
 

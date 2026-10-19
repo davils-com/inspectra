@@ -764,6 +764,7 @@ configuration. Takes the [shared options](#shared-options), the Trivy provisioni
 dart run inspectra report -f html -o inspectra-report.html --also junit=build/junit.xml
 dart run inspectra report --skip scan,coverage
 dart run inspectra report --merge app.json --merge api.json -f html -o inspectra-report.html
+dart run inspectra report --recursive -f html -o inspectra-report.html
 ```
 
 Runs every evaluation - the size of the code base, supply chain, dependencies, configuration, format, lint, style,
@@ -777,16 +778,19 @@ while the others still run. Takes the [shared options](#shared-options) and the 
 | `--skip <section>` | Leave out sections: `codebase`, `scan`, `deps`, `config`, `format`, `lint`, `style`, `api`, `changelog`, `trivy`, `coverage`. Repeatable or comma-separated. |
 | `--also <format>=<path>` | Also write the report in another format, such as `junit=build/junit.xml`. Repeatable. |
 | `--merge <report.json>` | Merge JSON reports of earlier runs instead of running the evaluations. Repeatable. |
+| `-r`, `--recursive` | Report every Dart package at or below the directory, each with its own configuration, in one report. The default in a directory without `pubspec.yaml` that has packages below it; `--no-recursive` reports the directory itself. See [Several projects at once](Reports.md#recursive). |
 
 `-f json` writes `project`, `status` and `sections`, one object per section with `id`, `title`, `status` (`passed`,
 `failed`, `skipped` or `error`), `summary`, `metrics`, `findings` and, where known, `reason` and `details`.
+Across several projects it writes `project`, `status` and `projects`, the body of each project's report with its
+`path` relative to the directory.
 
 | Result | Exit code |
 |:--|:--|
 | Every section passed or was skipped | `0` |
 | A section failed, without `--exit-zero` | `1` |
-| `--also` without a known format and a path | `64` |
-| A report to merge cannot be read or is no Inspectra JSON report | `65` |
+| `--also` without a known format and a path, or `--recursive` with `--merge` | `64` |
+| A report to merge cannot be read or is no Inspectra JSON report, or `--recursive` finds no package | `65` |
 | A section could not run completely, also with `--exit-zero`; the report is written first | `69` |
 
 ## config fetch {id="config-fetch"}

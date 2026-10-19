@@ -24,6 +24,7 @@ import 'package:inspectra/src/report/html_report_writer.dart';
 import 'package:inspectra/src/report/json_report_writer.dart';
 import 'package:inspectra/src/report/junit_report_writer.dart';
 import 'package:inspectra/src/report/markdown_report_writer.dart';
+import 'package:inspectra/src/report/multi_project_report.dart';
 import 'package:inspectra/src/report/output_format.dart';
 import 'package:inspectra/src/report/report_sections.dart';
 import 'package:inspectra/src/report/sarif_report_writer.dart';
@@ -61,12 +62,27 @@ final class ReportRenderer {
     OutputFormat.checkstyle => const CheckstyleReportWriter().render(
       report.findings,
     ),
-    OutputFormat.html => const HtmlReportWriter().render(
+    OutputFormat.html => _html(report, generatedAt, failOn),
+  };
+
+  /// Renders [report] as the HTML dashboard, generated at [generatedAt];
+  /// [failOn] is the severity from which a section fails.
+  ///
+  /// Returns the document: the dashboard of every project for a
+  /// [MultiProjectReport], of the sections otherwise.
+  String _html(CommandReport report, DateTime generatedAt, Severity failOn) {
+    if (report is MultiProjectReport) {
+      return const HtmlReportWriter().renderProjects(
+        report,
+        generatedAt: generatedAt,
+      );
+    }
+    return const HtmlReportWriter().render(
       sectionsOf(report, failOn),
       project: report is AggregateReport ? report.project : null,
       generatedAt: generatedAt,
-    ),
-  };
+    );
+  }
 
   /// Renders the human readable layout of [report].
   ///

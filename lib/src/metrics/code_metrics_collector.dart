@@ -44,16 +44,21 @@ const generatedSuffixes = <String>[
 ];
 
 /// Counts the lines of every Dart file below [root], leaving out tool
-/// caches, build output and hidden directories, and telling generated
-/// files apart by their suffix.
+/// caches, build output, hidden directories and the globs [exclude], and
+/// telling generated files apart by their suffix.
 ///
 /// Returns the metrics with paths relative to [root].
-CodeMetrics collectCodeMetrics(String root) {
+CodeMetrics collectCodeMetrics(
+  String root, {
+  List<String> exclude = const <String>[],
+}) {
   final files = <(String, LineCounts)>[];
   final generated = <(String, LineCounts)>[];
-  for (final String path in listFiles(root, const <String>[
-    '**.dart',
-  ], codeMetricsExclude)) {
+  for (final String path in listFiles(
+    root,
+    const <String>['**.dart'],
+    <String>[...codeMetricsExclude, ...exclude],
+  )) {
     final LineCounts lines = countDartLines(
       File(p.join(root, path)).readAsStringSync(),
     );

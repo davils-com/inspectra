@@ -20,6 +20,7 @@ import 'package:inspectra/src/model/finding.dart';
 import 'package:inspectra/src/model/inspectra_exception.dart';
 import 'package:inspectra/src/model/severity.dart';
 import 'package:inspectra/src/report/aggregate_report.dart';
+import 'package:inspectra/src/report/multi_project_report.dart';
 import 'package:inspectra/src/report/report_section.dart';
 import 'package:inspectra/src/report/report_sections.dart';
 import 'package:inspectra/src/report/section_status.dart';
@@ -78,19 +79,28 @@ Map<String, Object?> _decode(String name, String content) {
 
 /// Reads the sections of the report [json] read from [name].
 ///
-/// Returns the sections of an aggregate report, or one section with the
-/// findings of any other report, failing from [threshold].
+/// Returns the sections of an aggregate report, the sections of every
+/// project of a multi-project report, or one section with the findings of
+/// any other report, failing from [threshold].
 List<ReportSection> _sectionsOf(
   String name,
   Map<String, Object?> json,
   Severity threshold,
 ) {
+  final Object? projects = json['projects'];
+  if (projects is List<Object?>) {
+    final Object? folder = json['project'];
+    return MultiProjectReport(
+      project: folder is String ? folder : null,
+      projects: <AggregateReport>[
+        for (var index = 0; index < projects.length; index++)
+          _projectOf(projects[index], '$name: projects[$index]'),
+      ],
+    ).sections;
+  }
   final Object? sections = json['sections'];
   if (sections is List<Object?>) {
-    return <ReportSection>[
-      for (var index = 0; index < sections.length; index++)
-        ReportSection.fromJson(sections[index], '$name: sections[$index]'),
-    ];
+    return _sectionList(sections, name);
   }
   final Object? findings = json['findings'];
   final command = json['command']! as String;
@@ -113,6 +123,39 @@ List<ReportSection> _sectionsOf(
     ),
   ];
 }
+
+/// Reads the project [json] of a multi-project report, found at
+/// [location].
+///
+/// Returns the report of the project.
+///
+/// Throws an [InvalidInputException] when it has no sections.
+AggregateReport _projectOf(Object? json, String location) {
+  final Object? sections = json is Map<String, Object?>
+      ? json['sections']
+      : null;
+  if (json is! Map<String, Object?> || sections is! List<Object?>) {
+    throw InvalidInputException('$location needs a list of sections.');
+  }
+  final Object? project = json['project'];
+  final Object? path = json['path'];
+  return AggregateReport(
+    sections: _sectionList(sections, location),
+    project: project is String ? project : null,
+    path: path is String ? path : null,
+  );
+}
+
+/// Reads the [sections] found in [location].
+///
+/// Returns the sections.
+///
+/// Throws an [InvalidInputException] when one is no section.
+List<ReportSection> _sectionList(List<Object?> sections, String location) =>
+    <ReportSection>[
+      for (var index = 0; index < sections.length; index++)
+        ReportSection.fromJson(sections[index], '$location: sections[$index]'),
+    ];
 
 /// Returns [section] with an id not yet in [ids] and the report [name] in
 /// its title, and records the new id.

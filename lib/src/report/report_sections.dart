@@ -18,16 +18,23 @@ import 'package:inspectra/src/model/finding.dart';
 import 'package:inspectra/src/model/severity.dart';
 import 'package:inspectra/src/report/aggregate_report.dart';
 import 'package:inspectra/src/report/command_report.dart';
+import 'package:inspectra/src/report/multi_project_report.dart';
 import 'package:inspectra/src/report/report_section.dart';
 import 'package:inspectra/src/report/section_status.dart';
 import 'package:inspectra/src/report/severity_breakdown.dart';
 
-/// Returns the sections of [report]: those of an [AggregateReport], or
-/// one section describing any other report, failing from [threshold].
-List<ReportSection> sectionsOf(CommandReport report, Severity threshold) =>
-    report is AggregateReport
-    ? report.sections
-    : <ReportSection>[sectionOf(report, threshold)];
+/// Returns the sections of [report]: those of an [AggregateReport], those
+/// of every project of a [MultiProjectReport], or one section describing
+/// any other report, failing from [threshold].
+List<ReportSection> sectionsOf(CommandReport report, Severity threshold) {
+  if (report is AggregateReport) {
+    return report.sections;
+  }
+  if (report is MultiProjectReport) {
+    return report.sections;
+  }
+  return <ReportSection>[sectionOf(report, threshold)];
+}
 
 /// The titles of the sections of the finding-based commands.
 const _titles = <String, String>{

@@ -15,6 +15,7 @@
 <p><b>More formats from the same run</b>: <code>--also junit=build/junit.xml --also gitlab=gl-code-quality.json</code></p>
 <p><b>Faster</b>: <code>--skip scan,coverage</code> leaves out the network and the tests</p>
 <p><b>Combine CI jobs</b>: <code>report --merge a.json --merge b.json -f html -o all.html</code></p>
+<p><b>Every package of a monorepo</b>: <code>report --recursive -f html -o all.html</code>, the default in a folder without <code>pubspec.yaml</code></p>
 <p><b>Every other command</b>: <code>-f junit|gitlab|sonarqube|checkstyle|html</code></p>
 </tldr>
 
@@ -86,6 +87,32 @@ or per CI job and one dashboard at the end. A report of `report -f json` keeps i
 other command becomes one section. A section whose id is already taken gets a number and the file name in its title.
 A file that is no Inspectra JSON report exits with `65`.
 
+### Several projects at once {id="recursive"}
+
+```bash
+dart run %package% -C .. report -f html -o inspectra-report.html   # a folder of repositories
+dart run %package% report --recursive -f html -o inspectra-report.html  # a workspace and its members
+```
+
+`--recursive` (`-r`) reports every Dart package at or below the directory - each directory with a `pubspec.yaml`,
+the root and the members of pub workspaces and nested workspaces included - in one report. Started in a folder
+without a `pubspec.yaml` of its own that has packages below it, such as a folder of several repositories, `report`
+does this on its own; `--no-recursive` reports the folder itself. Hidden directories such as `.dart_tool` and `.git`,
+`build`, `coverage`, `node_modules`, `Pods` and `ephemeral` are not searched.
+
+Each project runs every evaluation in its own directory with its own configuration, its `extends` and its baseline,
+exactly as `-C <project> report` would; the command line options apply to every project, and `--config` names the
+file in each of them. A project whose configuration cannot be read is reported with an error in its configuration
+section, and the others still run. The codebase section of a project leaves out the projects below it, such as the
+members of a workspace, so that no line is counted twice.
+
+The report fails when a section of any project fails and is incomplete, exit code `69`, when a section of any project
+could not run. With `-f json` it holds `project`, the name of the folder, `status` and `projects`, the report of each
+project with its `path` relative to the folder. The formats for CI systems see the sections of every project: their
+ids start with the path of the project, `ws-member--lint`, their titles with the path, and the files of their
+findings are relative to the folder, so that GitLab or SonarQube can place them. `--merge` reads such a report as
+well. `--recursive` together with `--merge` exits with `64`, a folder without any package with `65`.
+
 ### The codebase section {id="codebase"}
 
 The codebase section counts the lines of every Dart file of the project - build output, tool caches and hidden
@@ -124,6 +151,13 @@ sidebar layout. It shows
 - one accordion item per evaluation with its key figures, the reason it was skipped or failed to run, the coverage of
   every file from the least covered, the files no test loaded, the API diff with added and removed lines marked, and
   the code base per directory and its largest files.
+
+The dashboard of [several projects](#recursive) has a sidebar with every project instead, key figure cards across all
+projects - projects passed, findings, the line coverage of all measured lines and how many projects reach their
+minimum, the lines of code -, charts of the findings by severity, the projects with the most findings and the
+largest projects, a table of the projects with their status, evaluations passed, findings, coverage and size, the
+finding explorer of all projects and an accordion item per project with the table and the details of its
+evaluations.
 
 Failed and incomplete evaluations start open. Light and dark mode follow the system, the layout works from a phone to a
 wide screen, printing expands everything, and a status is never told by colour alone.

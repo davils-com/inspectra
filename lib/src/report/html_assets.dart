@@ -175,6 +175,10 @@ th:last-child,td:last-child{padding-right:1rem}
 .stack-rows{display:flex;flex-direction:column;gap:.625rem;margin-top:1rem}
 .stack-row{display:grid;grid-template-columns:3.5rem 1fr 3.5rem;gap:.75rem;align-items:center;font-size:.8125rem}
 .stack-row .name{font-family:var(--font-mono);font-size:.75rem;color:var(--muted-foreground);overflow:hidden;text-overflow:ellipsis}
+.project-rows .stack-row{grid-template-columns:minmax(0,10rem) 1fr 3.5rem}
+.project-rows .name{white-space:nowrap}
+.cell-sub{display:block;font-size:.75rem;color:var(--muted-foreground)}
+.acc-content .accordion{padding:0 1rem;border:1px solid var(--border);border-radius:var(--radius)}
 .card-footer.stack{flex-direction:column;align-items:flex-start;gap:.25rem;font-size:.875rem}
 .accordion{padding:0 1.5rem}
 .acc-item{border-bottom:1px solid var(--border)}
@@ -233,7 +237,8 @@ th:last-child,td:last-child{padding-right:1rem}
 
   /// The script: severity, section and text filters for the finding
   /// explorer, tabs, the current entry of the sidebar, opening linked
-  /// sections and expanding everything for printing.
+  /// sections and projects with the items around them and expanding
+  /// everything for printing.
   ///
   /// The report is complete without it; the controls it needs stay hidden
   /// while scripts are disabled.
@@ -309,8 +314,11 @@ th:last-child,td:last-child{padding-right:1rem}
   });
   function openTarget() {
     var id = decodeURIComponent(location.hash.slice(1));
-    var target = id ? document.getElementById(id) : null;
-    if (target && target.tagName === "DETAILS") { target.open = true; }
+    var node = id ? document.getElementById(id) : null;
+    while (node) {
+      if (node.tagName === "DETAILS") { node.open = true; }
+      node = node.parentElement;
+    }
   }
   window.addEventListener("hashchange", openTarget);
   openTarget();

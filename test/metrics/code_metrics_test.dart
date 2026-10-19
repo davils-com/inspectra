@@ -119,6 +119,21 @@ var d = r'raw \' + 1;
     expect(metrics.largest(1).single.$1, 'lib/src/b.dart');
   });
 
+  test('leaves out the directories of nested projects', () {
+    final String root = temporaryDirectory();
+    writeFile(root, 'tool/a.dart', 'var a = 1;\n');
+    writeFile(root, 'member/lib/b.dart', 'var b = 1;\n');
+    writeFile(root, 'members/lib/c.dart', 'var c = 1;\n');
+    final CodeMetrics metrics = collectCodeMetrics(
+      root,
+      exclude: const <String>['member/**'],
+    );
+    expect(metrics.files.map((file) => file.$1), <String>[
+      'members/lib/c.dart',
+      'tool/a.dart',
+    ]);
+  });
+
   test('the codebase section reports lines and dependencies', () {
     const metrics = CodeMetrics(
       files: <(String, LineCounts)>[
