@@ -71,6 +71,8 @@ inspectra:
 | [`no_wildcard_case`](#rule-no-wildcard-case) | | | ✓ |
 | [`no_late`](#rule-no-late) | | | ✓ |
 | [`no_platform_imports`](#rule-no-platform-imports) | | | |
+| [`no_material`](#rule-no-material) | | | |
+| [`no_wall_clock`](#rule-no-wall-clock) | | | |
 
 `recommended` is meant for every package, Flutter apps included: a widget and its private `State` share a file, and
 documentation of the public API is left to the analyzer lint `public_member_api_docs`. `strict` is a house style -
@@ -79,6 +81,8 @@ the one %product% follows itself - with one type per file including private ones
 
 `no_platform_imports` is part of no preset, since a command line tool imports `dart:io` by nature;
 `rules: {no_platform_imports: true}` switches it on for a library that runs on every platform.
+`no_material` is for a Flutter design system of its own, and `no_wall_clock` for code that takes its time from an
+injected clock; neither fits every package, so both are switched on one by one as well.
 
 `license_header` runs only when `license_header` names a template. Custom rules run in every preset unless `rules`
 switches them off. To start small, take `preset: none` and switch rules on one by one.
@@ -142,6 +146,18 @@ switches them off. To start small, take `preset: none` and switch rules on one b
         the other libraries that exist on some platforms only - except a variant a conditional import chooses, a
         file whose name ends in <code>_io</code>, <code>_native</code> or <code>_web</code>.
         <code>dart:mirrors</code> is refused everywhere. Files outside <code>lib/</code> are not checked.
+    </def>
+    <def title="no_material" id="rule-no-material">
+        No file imports or exports <code>package:flutter/material.dart</code>,
+        <code>package:flutter/cupertino.dart</code> or a library under <code>package:flutter/src/material/</code> or
+        <code>package:flutter/src/cupertino/</code>, tests and tools included. A design system of its own is built on
+        <code>package:flutter/widgets.dart</code> and the libraries below it; a single Material widget brings a
+        second theme that its own theme does not reach.
+    </def>
+    <def title="no_wall_clock" id="rule-no-wall-clock">
+        No <code>DateTime.now()</code>, called or torn off, with or without an import prefix or <code>new</code>, in
+        any file: time comes from an injected clock, so that a test decides what time it is. The tree is not
+        resolved, so a class of the package that is itself named <code>DateTime</code> is reported too.
     </def>
 </deflist>
 

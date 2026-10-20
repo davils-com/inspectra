@@ -21,7 +21,9 @@ import 'package:inspectra/src/style/rules/no_comments_rule.dart';
 import 'package:inspectra/src/style/rules/no_default_case_rule.dart';
 import 'package:inspectra/src/style/rules/no_else_rule.dart';
 import 'package:inspectra/src/style/rules/no_late_rule.dart';
+import 'package:inspectra/src/style/rules/no_material_rule.dart';
 import 'package:inspectra/src/style/rules/no_platform_imports_rule.dart';
+import 'package:inspectra/src/style/rules/no_wall_clock_rule.dart';
 import 'package:inspectra/src/style/rules/no_wildcard_case_rule.dart';
 import 'package:inspectra/src/style/rules/one_public_type_per_file_rule.dart';
 import 'package:inspectra/src/style/rules/one_type_per_file_rule.dart';
@@ -44,6 +46,8 @@ const builtInStyleRuleIds = <String>[
   'no_wildcard_case',
   'no_late',
   'no_platform_imports',
+  'no_material',
+  'no_wall_clock',
 ];
 
 /// Matches a valid rule id: lower snake case, starting with a letter.
@@ -66,6 +70,8 @@ List<StyleRule> builtInStyleRules({LicenseHeader? header}) => <StyleRule>[
   const NoWildcardCaseRule(),
   const NoLateRule(),
   const NoPlatformImportsRule(),
+  const NoMaterialRule(),
+  const NoWallClockRule(),
 ];
 
 /// Decides whether the rule [id] runs: a setting in [overrides] wins, a

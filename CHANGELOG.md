@@ -12,6 +12,19 @@ All notable changes to this project are documented in this file. The format foll
   dependency never reaches the consumers of a package, so a quality gate such as Inspectra itself may come from a
   checkout next to the project. Path dependencies in `dependencies` and `dependency_overrides` are still reported.
 
+### Style check
+
+- `no_material`, a built-in rule that reports every import or export of Flutter's Material or
+  Cupertino library - `package:flutter/material.dart`, `package:flutter/cupertino.dart` and the
+  sources under `package:flutter/src/material/` and `package:flutter/src/cupertino/` - in every file,
+  tests and tools included, for a design system built on `package:flutter/widgets.dart` alone. It
+  is part of no preset and is switched on with `rules: {no_material: true}`. Ported from the custom
+  rule of Noria.
+- `no_wall_clock`, a built-in rule that reports every call and tear-off of `DateTime.now`, with or
+  without an import prefix or `new`, so that time comes from an injected clock a test controls. It
+  is part of no preset and is switched on with `rules: {no_wall_clock: true}`. Ported from the
+  custom rule of Noria.
+
 ## 2.1.0
 
 ### Reports and dashboards

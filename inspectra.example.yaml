@@ -221,8 +221,8 @@ style:
   # Switch single built-in or custom rules on or off; wins over the preset.
   # Built-in: license_header, public_docs, private_docs, one_type_per_file,
   # one_public_type_per_file, file_named_after_type, no_comments, no_else,
-  # no_default_case, no_wildcard_case, no_late, and no_platform_imports, which
-  # no preset turns on.
+  # no_default_case, no_wildcard_case, no_late, and no_platform_imports,
+  # no_material and no_wall_clock, which no preset turns on.
   rules: {}
   # license_header: tool/license_header.txt   # unset: no license_header rule
   custom_rules: []                   # files with a top level styleRules list

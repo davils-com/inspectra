@@ -291,6 +291,12 @@
             },
             "no_platform_imports": {
               "type": "boolean"
+            },
+            "no_material": {
+              "type": "boolean"
+            },
+            "no_wall_clock": {
+              "type": "boolean"
             }
           }
         },

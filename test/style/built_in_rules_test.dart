@@ -24,7 +24,9 @@ import 'package:inspectra/src/style/rules/no_comments_rule.dart';
 import 'package:inspectra/src/style/rules/no_default_case_rule.dart';
 import 'package:inspectra/src/style/rules/no_else_rule.dart';
 import 'package:inspectra/src/style/rules/no_late_rule.dart';
+import 'package:inspectra/src/style/rules/no_material_rule.dart';
 import 'package:inspectra/src/style/rules/no_platform_imports_rule.dart';
+import 'package:inspectra/src/style/rules/no_wall_clock_rule.dart';
 import 'package:inspectra/src/style/rules/no_wildcard_case_rule.dart';
 import 'package:inspectra/src/style/rules/one_public_type_per_file_rule.dart';
 import 'package:inspectra/src/style/rules/one_type_per_file_rule.dart';
@@ -226,6 +228,154 @@ export 'package:sample/src/host_web.dart'
     test('is part of no preset', () {
       for (final StylePreset preset in StylePreset.values) {
         expect(preset.ruleIds, isNot(contains('no_platform_imports')));
+      }
+    });
+  });
+
+  group('no_material', () {
+    /// Runs the rule on [source] as the file at [path].
+    ///
+    /// Returns the lines of the violations it reports.
+    List<int> lines(String source, {String path = 'lib/a.dart'}) => <int>[
+      for (final StyleViolation violation in check(
+        const NoMaterialRule(),
+        source,
+        path: path,
+      ))
+        violation.line,
+    ];
+
+    test('reports the Material library with its message', () {
+      const message =
+          'No Material or Cupertino: build on package:flutter/widgets.dart '
+          'instead of package:flutter/material.dart.';
+
+      expect(
+        found(
+          const NoMaterialRule(),
+          "import 'package:flutter/material.dart';\n",
+        ),
+        <String>['1:1 $message'],
+      );
+    });
+
+    test('reports Cupertino, the sources of both and an export', () {
+      const source = '''
+import 'package:flutter/cupertino.dart' show CupertinoButton;
+import 'package:flutter/src/material/colors.dart' as colors;
+export 'package:flutter/src/cupertino/colors.dart';
+export 'package:flutter/material.dart' hide Icons;
+''';
+
+      expect(lines(source), <int>[1, 2, 3, 4]);
+    });
+
+    test('reports in every directory, tests and tools included', () {
+      const source = "import 'package:flutter/material.dart';\n";
+
+      expect(
+        <List<int>>[
+          lines(source, path: 'test/a_test.dart'),
+          lines(source, path: 'tool/generate.dart'),
+          lines(source, path: 'bin/main.dart'),
+        ],
+        <List<int>>[
+          <int>[1],
+          <int>[1],
+          <int>[1],
+        ],
+      );
+    });
+
+    test('accepts the other libraries of Flutter and similar names', () {
+      const source = '''
+import 'package:flutter/widgets.dart';
+import 'package:flutter/painting.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/src/widgets/basic.dart';
+import 'package:material_color_utilities/material_color_utilities.dart';
+import 'package:sample/material.dart';
+part 'b.dart';
+''';
+
+      expect(lines(source), isEmpty);
+    });
+
+    test('is part of no preset', () {
+      for (final StylePreset preset in StylePreset.values) {
+        expect(preset.ruleIds, isNot(contains('no_material')));
+      }
+    });
+  });
+
+  group('no_wall_clock', () {
+    /// Runs the rule on [source].
+    ///
+    /// Returns the lines of the violations it reports.
+    List<int> lines(String source) => <int>[
+      for (final StyleViolation violation in check(
+        const NoWallClockRule(),
+        source,
+      ))
+        violation.line,
+    ];
+
+    test('reports DateTime.now() with its message', () {
+      const message =
+          'No DateTime.now(): read the time from an injected clock, so that a '
+          'test decides what time it is.';
+
+      expect(
+        found(const NoWallClockRule(), 'final at = DateTime.now();\n'),
+        <String>['1:12 $message'],
+      );
+    });
+
+    test('reports a call through an import prefix and with new', () {
+      const source = '''
+final a = core.DateTime.now();
+final b = new DateTime.now();
+final c = new core.DateTime.now();
+''';
+
+      expect(lines(source), <int>[1, 2, 3]);
+    });
+
+    test('reports the tear-off, with and without a prefix', () {
+      const source = '''
+final a = DateTime.now;
+final b = core.DateTime.now;
+''';
+
+      expect(lines(source), <int>[1, 2]);
+    });
+
+    test('reports a call nested in an expression', () {
+      const source = '''
+bool expired(DateTime at) => DateTime.now().isAfter(at);
+''';
+
+      expect(lines(source), <int>[1]);
+    });
+
+    test('accepts every other member of DateTime and every other now', () {
+      const source = '''
+final a = DateTime.utc(2026);
+final b = clock.now();
+final c = DateTime.parse(text).now;
+final d = Other.now;
+final e = new DateTime.utc(2026);
+final f = new Other.now();
+final g = new core.Other.now();
+final now = DateTime.fromMillisecondsSinceEpoch(0);
+''';
+
+      expect(lines(source), isEmpty);
+    });
+
+    test('is part of no preset', () {
+      for (final StylePreset preset in StylePreset.values) {
+        expect(preset.ruleIds, isNot(contains('no_wall_clock')));
       }
     });
   });
@@ -476,6 +626,8 @@ final class Square implements Shape {}
         builtInStyleRuleIds.toSet().difference(<String>{
           'one_public_type_per_file',
           'no_platform_imports',
+          'no_material',
+          'no_wall_clock',
         }),
       );
       expect(StylePreset.none.ruleIds, isEmpty);

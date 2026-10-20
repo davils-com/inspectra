@@ -190,7 +190,9 @@ diagnostics of `dart analyze` carry ids of their own and are not listed here. A 
 | `no_default_case` | low | No default case in switch statements: handle every case explicitly. |
 | `no_else` | low | No else branch: return early or split the collection element. |
 | `no_late` | low | No late variables: initialise every variable where it is declared. |
+| `no_material` | low | No Material or Cupertino library of Flutter: build on package:flutter/widgets.dart. |
 | `no_platform_imports` | low | No platform library under lib/ outside a variant of a conditional import. |
+| `no_wall_clock` | low | No DateTime.now(): read the time from an injected clock. |
 | `no_wildcard_case` | low | No wildcard case in switch statements and expressions: handle every case explicitly. |
 | `one_public_type_per_file` | low |  |
 | `one_type_per_file` | low |  |
