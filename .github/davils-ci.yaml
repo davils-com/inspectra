@@ -11,6 +11,20 @@ dart:
   # The Inspectra job runs build_runner build --only-check before inspectra check.
   build-runner:
     enabled: false
+  # pub warns about the top-level docs directory of the Writerside documentation; releases go to
+  # GitHub, so the dry run of a pub.dev publication is off, as before.
+  publish-dry-run:
+    enabled: false
+
+hooks:
+  # As before: Inspectra provisions the Trivy its integration tests run against (checksum
+  # verified) and puts it on the PATH, not into INSPECTRA_TRIVY, which would override the fake
+  # Trivy executables of the unit tests. Not on Windows, where those tests skip Trivy.
+  pre-test: |
+    if [[ "$RUNNER_OS" != Windows ]]; then
+      dart run bin/inspectra.dart trivy --install --format json --output "$RUNNER_TEMP/trivy.json"
+      dirname "$(jq -r .trivy.executable "$RUNNER_TEMP/trivy.json")" >>"$GITHUB_PATH"
+    fi
 
 inspectra:
   # The repository checks itself with its own source: dart run inspectra.
