@@ -37,10 +37,6 @@ inspectra:
 writerside:
   instances: [docs/d]
 
-timeouts:
-  # inspectra check runs the whole suite with coverage and every Trivy scan.
-  inspectra: 60
-
 build:
   dart-compile:
     targets: [linux-x64, linux-arm64, macos-arm64, macos-x64, windows-x64]
