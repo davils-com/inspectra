@@ -222,7 +222,8 @@ The supply-chain commands render `--format text|json|sarif|markdown`, the CI for
 - **typosquat** — closest popular package by edit distance, `flutter_`/`dart_`/`pub_` wrapping,
   suspicious suffixes, private packages whose name also exists on pub.dev, inflated versions.
 - **pubspec rules** (in `scan`) — unconstrained versions, Git dependencies on mutable branches, raw
-  IPs or paste sites, plain HTTP sources, path dependencies, overrides, Dart 2 SDK constraints.
+  IPs or paste sites, plain HTTP sources, path dependencies outside `dev_dependencies`, overrides,
+  Dart 2 SDK constraints.
 
 The pre-commit hook (`inspectra hook`) audits the **staged** `pubspec.lock` and checks the staged
 `pubspec.yaml` of every package in the repository; it never overwrites a foreign hook and honours

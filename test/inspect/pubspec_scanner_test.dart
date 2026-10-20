@@ -73,6 +73,18 @@ void main() {
     expect(byRule['DEPENDENCY_OVERRIDE']!.location!.line, 6);
   });
 
+  test('accepts path dependencies only in dev_dependencies', () {
+    expect(
+      rulesFor(
+        'dependencies:\n  a: {path: ../a}\n'
+        'dev_dependencies:\n  b: {path: ../b}\n'
+        'dependency_overrides:\n  c: {path: ../c}\n',
+      ),
+      <String>['PATH_DEPENDENCY', 'DEPENDENCY_OVERRIDE', 'PATH_DEPENDENCY'],
+    );
+    expect(rulesFor('dev_dependencies:\n  b:\n    path: ../b\n'), isEmpty);
+  });
+
   test('accepts a well pinned pubspec', () {
     expect(
       rulesFor(

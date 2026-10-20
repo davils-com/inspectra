@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file. The format foll
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## Unreleased
+
+### Dependency policy
+
+- `PATH_DEPENDENCY` is no longer reported for `dev_dependencies`, as its explanation always said: a development
+  dependency never reaches the consumers of a package, so a quality gate such as Inspectra itself may come from a
+  checkout next to the project. Path dependencies in `dependencies` and `dependency_overrides` are still reported.
+
 ## 2.1.0
 
 ### Reports and dashboards

@@ -36,7 +36,8 @@ import 'package:pub_semver/pub_semver.dart';
 /// * `GIT_BRANCH_REF` (HIGH): Git dependencies on a mutable branch or on the
 ///   default branch;
 /// * `INSECURE_URL` (HIGH): plain `http://` Git or registry URLs;
-/// * `PATH_DEPENDENCY` (MEDIUM): local path dependencies;
+/// * `PATH_DEPENDENCY` (MEDIUM): local path dependencies outside
+///   `dev_dependencies`;
 /// * `DEPENDENCY_OVERRIDE` (MEDIUM): overrides bypassing resolution;
 /// * `OLD_SDK_CONSTRAINT` (LOW): SDK constraints admitting Dart 2.
 final class PubspecScanner {
@@ -77,18 +78,25 @@ final class PubspecScanner {
   }) {
     final List<String> lines = content.split('\n');
     final findings = <Finding>[];
-    final sections = <Map<String, DependencySpec>>[
-      pubspec.dependencies,
-      pubspec.devDependencies,
+    final sections = <(Map<String, DependencySpec>, bool)>[
+      (pubspec.dependencies, false),
+      (pubspec.devDependencies, true),
     ];
-    for (final section in sections) {
+    for (final (section, development) in sections) {
       for (final MapEntry<String, DependencySpec> entry in section.entries) {
         final SourceLocation location = locatePubspecKey(
           lines,
           entry.key,
           displayPath,
         );
-        findings.addAll(_checkDependency(entry.key, entry.value, location));
+        findings.addAll(
+          _checkDependency(
+            entry.key,
+            entry.value,
+            location,
+            development: development,
+          ),
+        );
       }
     }
     for (final MapEntry<String, DependencySpec> entry
@@ -109,7 +117,9 @@ final class PubspecScanner {
             location,
           ),
         )
-        ..addAll(_checkSource(entry.key, entry.value, location));
+        ..addAll(
+          _checkSource(entry.key, entry.value, location, development: false),
+        );
     }
     final Finding? sdk = _oldSdk(pubspec.sdkConstraint, lines, displayPath);
     if (sdk != null) {
@@ -118,15 +128,22 @@ final class PubspecScanner {
     return findings;
   }
 
-  /// Checks one regular dependency.
+  /// Checks one regular dependency; [development] tells whether it is
+  /// declared in `dev_dependencies`.
   ///
   /// Returns the findings.
   List<Finding> _checkDependency(
     String name,
     DependencySpec spec,
-    SourceLocation location,
-  ) {
-    final List<Finding> findings = _checkSource(name, spec, location);
+    SourceLocation location, {
+    required bool development,
+  }) {
+    final List<Finding> findings = _checkSource(
+      name,
+      spec,
+      location,
+      development: development,
+    );
     if (spec.kind != DependencyKind.hosted) {
       return findings;
     }
@@ -158,16 +175,20 @@ final class PubspecScanner {
     return findings;
   }
 
-  /// Checks the source of a dependency: Git, path and registry URLs.
+  /// Checks the source of a dependency: Git, path and registry URLs. A path
+  /// is only reported outside `dev_dependencies`, which [development] tells,
+  /// since development dependencies never reach the consumers of a package.
   ///
   /// Returns the findings.
   List<Finding> _checkSource(
     String name,
     DependencySpec spec,
-    SourceLocation location,
-  ) {
+    SourceLocation location, {
+    required bool development,
+  }) {
     final findings = <Finding>[];
-    if (spec.kind == DependencyKind.path) {
+    final bool reportedPath = spec.kind == DependencyKind.path && !development;
+    if (reportedPath) {
       findings.add(
         _finding(
           name,
