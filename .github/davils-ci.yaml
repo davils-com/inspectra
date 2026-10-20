@@ -1,0 +1,45 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/davils-com/workflows/develop/schemas/davils-ci.schema.json
+#
+# What Inspectra's CI does differently from the defaults of davils-com/workflows. Every option is
+# in the configuration reference of davils-com/workflows.
+version: 1
+
+dart:
+  # The newest SDK and the lowest one pubspec.yaml allows (3.13.4), on every operating system.
+  sdks: [stable, lowest]
+  os: [ubuntu, macos, windows]
+  # The Inspectra job runs build_runner build --only-check before inspectra check.
+  build-runner:
+    enabled: false
+
+inspectra:
+  # The repository checks itself with its own source: dart run inspectra.
+  install: auto
+  scan:
+    fail-on: high
+  trivy:
+    mode: required
+
+writerside:
+  instances: [docs/d]
+
+build:
+  dart-compile:
+    targets: [linux-x64, linux-arm64, macos-arm64, macos-x64, windows-x64]
+    smoke-test-args: --version
+    # Every push compiles the executables, as a check that they still build.
+    when:
+      events: [push, pull_request, merge_group, workflow_dispatch]
+      branches: []
+
+release:
+  tag-patterns:
+    single: v{version}
+    package: ''
+  pub:
+    # Releases go to GitHub; publishing to pub.dev stays a manual step until automated
+    # publishing is set up on pub.dev for this repository.
+    enabled: false
+  github:
+    # inspectra changelog notes <version>; the release stops when the section is missing.
+    notes-source: inspectra
