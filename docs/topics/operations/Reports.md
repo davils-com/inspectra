@@ -125,7 +125,7 @@ directories left out - and reads its dependencies:
 | Comment lines, documentation lines | Lines with nothing but comments; documentation are `///` and `/** */` comments |
 | Blank lines, comment ratio | Empty lines; the share of comment lines among the lines with content |
 | TODO markers | `TODO`, `FIXME`, `HACK` and `XXX` in comments |
-| Generated files | `*.g.dart`, `*.freezed.dart`, `*.mocks.dart` and other generated files, which the other figures leave out |
+| Generated files | `*.g.dart`, `*.freezed.dart`, `*.mocks.dart`, `*.specia.dart` and other generated files, which the other figures leave out |
 | Dependencies, dev dependencies, Dart SDK | From `pubspec.yaml` |
 | Locked and transitive packages | From `pubspec.lock` |
 

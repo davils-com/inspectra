@@ -16,7 +16,7 @@ inspectra:
     runner: dart                       # default; or flutter
     output_directory: coverage         # default
     report_on: [lib]                   # default
-    exclude: ['**.g.dart', '**.freezed.dart', '**.mocks.dart']   # default
+    exclude: ['**.g.dart', '**.freezed.dart', '**.mocks.dart', '**.specia.dart']   # default
     min_line_coverage: 80              # unset by default
     test_arguments: []                 # default
     merge: []                          # default
@@ -79,6 +79,7 @@ generators:
 | `**.g.dart` | `json_serializable`, `built_value`, `riverpod_generator` and other `source_gen` builders |
 | `**.freezed.dart` | `freezed` |
 | `**.mocks.dart` | `mockito` |
+| `**.specia.dart` | `specia` |
 
 Setting `exclude` replaces the defaults:
 

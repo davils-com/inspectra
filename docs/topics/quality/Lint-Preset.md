@@ -56,6 +56,8 @@ only to enforce it.
     </def>
     <def title="Generated code excluded">
         <code>**/*.g.dart</code>, <code>**/*.freezed.dart</code> and <code>**/*.mocks.dart</code> are not analyzed.
+        <code>**/*.specia.dart</code> is analyzed on purpose: Specia writes lint clean code, so its output is held
+        to the preset, while the format check, the style check and the coverage gate leave it out.
     </def>
     <def title="Formatter">
         <code>page_width: 80</code>, which the <a href="Format-Check.md">format check</a> and <code>dart format</code>

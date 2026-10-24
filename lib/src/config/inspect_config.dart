@@ -101,6 +101,7 @@ final class InspectConfig {
     '.g.dart',
     '.freezed.dart',
     '.mocks.dart',
+    '.specia.dart',
     '.pb.dart',
     '.gr.dart',
   ];

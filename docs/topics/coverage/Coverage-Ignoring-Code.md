@@ -67,7 +67,7 @@ The three lines of `cube`, wrapped in `ignore-start` and `ignore-end`, and the p
 | A directory, such as `lib/src/generated/` | `coverage.exclude` |
 
 Generated files cannot carry comments you write - they are overwritten - so `exclude` is the way for them. The
-defaults already exclude `*.g.dart`, `*.freezed.dart` and `*.mocks.dart`.
+defaults already exclude `*.g.dart`, `*.freezed.dart`, `*.mocks.dart` and `*.specia.dart`.
 
 <warning>
 Every ignore comment raises the reported coverage without testing anything. Keep them rare and say why next to each

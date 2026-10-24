@@ -557,7 +557,7 @@ final class IgnoreRule {
 }
 
 final class InspectConfig {
-  static const List<String> defaultEntropyExcludes = <String>['.g.dart', '.freezed.dart', '.mocks.dart', '.pb.dart', '.gr.dart'];
+  static const List<String> defaultEntropyExcludes = <String>['.g.dart', '.freezed.dart', '.mocks.dart', '.specia.dart', '.pb.dart', '.gr.dart'];
   static const List<String> defaultExcludeDirectories = <String>['test', 'integration_test', 'example', 'benchmark', 'doc', 'docs', 'tool', 'extension'];
   final List<String> entropyExcludes;
   final List<String> excludeDirectories;

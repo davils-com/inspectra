@@ -69,7 +69,7 @@ inspectra:
     max_archive_bytes: 67108864
     max_extracted_bytes: 268435456
     max_entries: 20000
-    entropy_excludes: [.g.dart, .freezed.dart, .mocks.dart, .pb.dart, .gr.dart]
+    entropy_excludes: [.g.dart, .freezed.dart, .mocks.dart, .specia.dart, .pb.dart, .gr.dart]
     exclude_directories: [test, integration_test, example, benchmark, doc, docs, tool, extension]
     trusted_hosts: []
 
@@ -90,7 +90,7 @@ inspectra:
     run_on_build: false
     fail_on_findings: true
     include: ['**.dart']
-    exclude: ['**/.dart_tool/**', '**/build/**', '**.g.dart', '**.freezed.dart', '**.mocks.dart']
+    exclude: ['**/.dart_tool/**', '**/build/**', '**.g.dart', '**.freezed.dart', '**.mocks.dart', '**.specia.dart']
     # page_width: 80               # unset: from analysis_options.yaml
 
   lint:
@@ -107,7 +107,7 @@ inspectra:
     # license_header: …            # unset: no license_header rule
     custom_rules: []
     include: ['**.dart']
-    exclude: ['**/.dart_tool/**', '**/build/**', '**.g.dart', '**.freezed.dart', '**.mocks.dart']
+    exclude: ['**/.dart_tool/**', '**/build/**', '**.g.dart', '**.freezed.dart', '**.mocks.dart', '**.specia.dart']
 
   api:
     enabled: false
@@ -173,7 +173,7 @@ inspectra:
     runner: dart
     output_directory: coverage
     report_on: [lib]
-    exclude: ['**.g.dart', '**.freezed.dart', '**.mocks.dart']
+    exclude: ['**.g.dart', '**.freezed.dart', '**.mocks.dart', '**.specia.dart']
     # min_line_coverage: 80        # unset: report only, never fail
     test_arguments: []
     merge: []                      # further runs whose coverage is merged
@@ -316,7 +316,7 @@ The source inspection of `inspect` and `add`.
 | `max_archive_bytes` | whole number | `67108864` (64 MiB) | The largest package archive that is downloaded. |
 | `max_extracted_bytes` | whole number | `268435456` (256 MiB) | The largest total size of all archive entries, which stops decompression bombs. |
 | `max_entries` | whole number | `20000` | The largest number of archive entries. |
-| `entropy_excludes` | list of strings | `[.g.dart, .freezed.dart, .mocks.dart, .pb.dart, .gr.dart]` | File name suffixes of generated code that the entropy scanner skips. |
+| `entropy_excludes` | list of strings | `[.g.dart, .freezed.dart, .mocks.dart, .specia.dart, .pb.dart, .gr.dart]` | File name suffixes of generated code that the entropy scanner skips. |
 | `exclude_directories` | list of strings | `[test, integration_test, example, benchmark, doc, docs, tool, extension]` | Top level directories skipped by the code pattern and entropy scanners. Unicode and archive checks still cover every file. |
 | `trusted_hosts` | list of strings | `[]` | Host names the hard-coded URL rule never reports, on top of the built-in Dart, Flutter and GitHub hosts. |
 
@@ -352,7 +352,7 @@ The format check. See [Format check](Format-Check.md).
 | `run_on_build` | boolean | `false` | Whether the `inspectra:format` builder checks on `build_runner build`. |
 | `fail_on_findings` | boolean | `true` | Whether an unformatted file fails the build or the command. |
 | `include` | list of globs | `['**.dart']` | The files that are checked. |
-| `exclude` | list of globs | `['**/.dart_tool/**', '**/build/**', '**.g.dart', '**.freezed.dart', '**.mocks.dart']` | Files never checked. Replaces the default when set. |
+| `exclude` | list of globs | `['**/.dart_tool/**', '**/build/**', '**.g.dart', '**.freezed.dart', '**.mocks.dart', '**.specia.dart']` | Files never checked. Replaces the default when set. |
 | `page_width` | whole number, 1 to 1000 | unset | The line length passed to `dart format`. Unset: `formatter: page_width` of `analysis_options.yaml`, else 80. |
 
 ## lint {id="lint"}
@@ -504,7 +504,7 @@ The coverage gate. See [Coverage](Coverage-Overview.md).
 | `runner` | `dart` or `flutter` | `dart` | Which test runner collects the coverage. |
 | `output_directory` | string | `coverage` | Where `lcov.info` and the raw hit maps are written. |
 | `report_on` | list of directories | `[lib]` | The directories whose files are reported. |
-| `exclude` | list of globs | `['**.g.dart', '**.freezed.dart', '**.mocks.dart']` | Files left out of the report. Replaces the default when set. |
+| `exclude` | list of globs | `['**.g.dart', '**.freezed.dart', '**.mocks.dart', '**.specia.dart']` | Files left out of the report. Replaces the default when set. |
 | `min_line_coverage` | number, 0 to 100 | unset | The line coverage in percent below which the gate fails. Unset: report only. `--min` overrides it. |
 | `test_arguments` | list of strings | `[]` | Extra arguments for the test runner, such as `[--exclude-tags, slow]`. |
 | `merge` | list of runs | `[]` | Further test runs, each with a `name` and its `test_arguments`, whose coverage is merged into the report, such as a preset or a browser. Every layer adds its runs. |

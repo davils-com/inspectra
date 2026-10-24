@@ -35,6 +35,7 @@ const generatedSuffixes = <String>[
   '.g.dart',
   '.freezed.dart',
   '.mocks.dart',
+  '.specia.dart',
   '.gr.dart',
   '.config.dart',
   '.pb.dart',

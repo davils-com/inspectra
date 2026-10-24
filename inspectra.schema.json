@@ -173,7 +173,8 @@
             "**/build/**",
             "**.g.dart",
             "**.freezed.dart",
-            "**.mocks.dart"
+            "**.mocks.dart",
+            "**.specia.dart"
           ]
         },
         "exclude+": {
@@ -358,7 +359,8 @@
             "**/build/**",
             "**.g.dart",
             "**.freezed.dart",
-            "**.mocks.dart"
+            "**.mocks.dart",
+            "**.specia.dart"
           ]
         },
         "exclude+": {
@@ -1045,7 +1047,8 @@
           "default": [
             "**.g.dart",
             "**.freezed.dart",
-            "**.mocks.dart"
+            "**.mocks.dart",
+            "**.specia.dart"
           ]
         },
         "exclude+": {
@@ -1608,6 +1611,7 @@
             ".g.dart",
             ".freezed.dart",
             ".mocks.dart",
+            ".specia.dart",
             ".pb.dart",
             ".gr.dart"
           ]

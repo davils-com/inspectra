@@ -89,7 +89,7 @@ reports it too.
 ### The format check complains about generated code {collapsible="true"}
 
 The generator writes with its own page width. Add the file pattern to `format.exclude`; the defaults already cover
-`*.g.dart`, `*.freezed.dart` and `*.mocks.dart`.
+`*.g.dart`, `*.freezed.dart`, `*.mocks.dart` and `*.specia.dart`.
 
 ### The lint check reports errors in generated files that do not exist yet {collapsible="true"}
 

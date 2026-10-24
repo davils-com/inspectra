@@ -6,6 +6,16 @@ All notable changes to this project are documented in this file. The format foll
 
 ## Unreleased
 
+### Generated code
+
+- `**.specia.dart`, the client libraries written by the Specia OpenAPI generator
+  (`<name>.model.specia.dart`, `<name>.api.specia.dart`, `<name>.client.specia.dart` and
+  `<name>.ext.specia.dart`), is generated code: the default `exclude` of the format check, the style
+  check and the coverage gate leaves it out, the entropy scan skips the `.specia.dart` suffix
+  (`InspectConfig.defaultEntropyExcludes`) and the codebase section of the report counts it as
+  generated. The analyzer `exclude:` of `lib/lints/strict.yaml` does not list it: Specia writes
+  lint clean code, so the lint preset keeps analyzing it.
+
 ### Dependency policy
 
 - `PATH_DEPENDENCY` is no longer reported for `dev_dependencies`, as its explanation always said: a development

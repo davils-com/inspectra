@@ -31,7 +31,7 @@ inspectra:
     run_on_build: false          # default
     fail_on_findings: true       # default
     include: ['**.dart']         # default
-    exclude: ['**/.dart_tool/**', '**/build/**', '**.g.dart', '**.freezed.dart', '**.mocks.dart']
+    exclude: ['**/.dart_tool/**', '**/build/**', '**.g.dart', '**.freezed.dart', '**.mocks.dart', '**.specia.dart']
     # page_width: 100            # default: from analysis_options.yaml, else 80
 ```
 
@@ -48,7 +48,7 @@ inspectra:
 
 Code generators format their own output, often with their own settings. A `.g.dart` file that differs from your page
 width is the generator's choice, and reformatting it would be undone by the next build. The defaults therefore leave
-out `*.g.dart`, `*.freezed.dart` and `*.mocks.dart`, like the coverage gate does.
+out `*.g.dart`, `*.freezed.dart`, `*.mocks.dart` and `*.specia.dart`, like the coverage gate and the style check do.
 
 ### Page width and style
 

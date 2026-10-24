@@ -41,7 +41,7 @@ inspectra:
     license_header: tool/license_header.txt  # unset: no header rule
     custom_rules: [tool/style_rules.dart]    # your own rules
     include: ['**.dart']
-    exclude: ['**/.dart_tool/**', '**/build/**', '**.g.dart', '**.freezed.dart', '**.mocks.dart']
+    exclude: ['**/.dart_tool/**', '**/build/**', '**.g.dart', '**.freezed.dart', '**.mocks.dart', '**.specia.dart']
 ```
 
 | Key | Default | Description |

@@ -119,6 +119,15 @@ var d = r'raw \' + 1;
     expect(metrics.largest(1).single.$1, 'lib/src/b.dart');
   });
 
+  test('counts the libraries Specia writes as generated', () {
+    final String root = temporaryDirectory();
+    writeFile(root, 'lib/specia.dart', 'var a = 1;\n');
+    writeFile(root, 'lib/src/pets.api.specia.dart', 'var b = 1;\n');
+    final CodeMetrics metrics = collectCodeMetrics(root);
+    expect(metrics.files.single.$1, 'lib/specia.dart');
+    expect(metrics.generated.single.$1, 'lib/src/pets.api.specia.dart');
+  });
+
   test('leaves out the directories of nested projects', () {
     final String root = temporaryDirectory();
     writeFile(root, 'tool/a.dart', 'var a = 1;\n');

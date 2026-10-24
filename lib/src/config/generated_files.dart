@@ -14,11 +14,17 @@
  * limitations under the License.
  */
 
-/// The generated files left out of the format check and the coverage report
-/// by default: code generators write them, and their formatting and
-/// coverage are the generator's business.
+/// The generated files left out of the format check, the style check and
+/// the coverage report by default: code generators write them, and their
+/// formatting, structure and coverage are the generator's business.
+///
+/// The analyzer `exclude:` of `lib/lints/strict.yaml` is kept apart on
+/// purpose: it lists only the generators whose output is not lint clean, so
+/// `**.specia.dart`, which Specia promises to write lint clean, is still
+/// analyzed.
 const generatedFiles = <String>[
   '**.g.dart',
   '**.freezed.dart',
   '**.mocks.dart',
+  '**.specia.dart',
 ];
